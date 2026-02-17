@@ -2,26 +2,17 @@ import { useState } from "react";
 import { MessageSquare, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import HeroSection from "@/components/HeroSection";
-import AnalysisForm from "@/components/AnalysisForm";
-import RiskMeter from "@/components/RiskMeter";
-import ResultCard, { type ModuleResult } from "@/components/ResultCard";
-
-interface AnalysisResult {
-  text_score?: number;
-  text_reasons?: string[];
-  url_score?: number;
-  url_reasons?: string[];
-  final_score: number;
-  verdict: string;
-}
+import HeroSection from "@/components/HeroSection.jsx";
+import AnalysisForm from "@/components/AnalysisForm.jsx";
+import RiskMeter from "@/components/RiskMeter.jsx";
+import ResultCard from "@/components/ResultCard.jsx";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState(null);
   const { toast } = useToast();
 
-  const handleAnalyze = async (data: { message: string; url: string }) => {
+  const handleAnalyze = async (data) => {
     setIsLoading(true);
     setResult(null);
 
@@ -36,8 +27,8 @@ const Index = () => {
         return;
       }
 
-      setResult(res as AnalysisResult);
-    } catch (err: any) {
+      setResult(res);
+    } catch (err) {
       toast({
         title: "Error",
         description: err?.message || "Failed to analyze. Please try again.",
@@ -48,7 +39,7 @@ const Index = () => {
     }
   };
 
-  const modules: ModuleResult[] = [];
+  const modules = [];
   if (result?.text_score !== undefined) {
     modules.push({
       score: result.text_score,
@@ -71,15 +62,12 @@ const Index = () => {
       <HeroSection />
 
       <main className="mx-auto max-w-3xl px-4 pb-20">
-        {/* Analysis Form */}
         <div className="flex flex-col items-center">
           <AnalysisForm onAnalyze={handleAnalyze} isLoading={isLoading} />
         </div>
 
-        {/* Results */}
         {result && (
           <div className="mt-12 space-y-8 animate-fade-in">
-            {/* Final Score */}
             <div className="flex flex-col items-center">
               <h2 className="mb-1 text-sm font-mono text-muted-foreground tracking-widest uppercase">
                 Fusion Verdict
@@ -94,7 +82,6 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Module Breakdown */}
             {modules.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-mono text-muted-foreground tracking-widest uppercase">

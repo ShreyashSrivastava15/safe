@@ -1,17 +1,6 @@
-import { AlertTriangle, CheckCircle, XCircle, MessageSquare, Link } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
-interface ModuleResult {
-  score: number;
-  reasons: string[];
-  label: string;
-  icon: React.ReactNode;
-}
-
-interface ResultCardProps {
-  module: ModuleResult;
-}
-
-const ResultCard = ({ module }: ResultCardProps) => {
+const ResultCard = ({ module }) => {
   const percentage = Math.round(module.score * 100);
 
   const getStatusConfig = () => {
@@ -35,18 +24,13 @@ const ResultCard = ({ module }: ResultCardProps) => {
         </div>
       </div>
 
-      {/* Risk bar */}
       <div className="h-1.5 w-full rounded-full bg-muted mb-3">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
-          style={{
-            width: `${percentage}%`,
-            backgroundColor: "currentColor",
-          }}
+          style={{ width: `${percentage}%`, backgroundColor: "currentColor" }}
         />
       </div>
 
-      {/* Reasons */}
       {module.reasons.length > 0 && (
         <ul className="space-y-1">
           {module.reasons.map((reason, i) => (
@@ -61,5 +45,4 @@ const ResultCard = ({ module }: ResultCardProps) => {
   );
 };
 
-export { ResultCard, type ModuleResult };
 export default ResultCard;

@@ -4,16 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-interface AnalysisFormProps {
-  onAnalyze: (data: { message: string; url: string }) => void;
-  isLoading: boolean;
-}
-
-const AnalysisForm = ({ onAnalyze, isLoading }: AnalysisFormProps) => {
+const AnalysisForm = ({ onAnalyze, isLoading }) => {
   const [message, setMessage] = useState("");
   const [url, setUrl] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!message.trim() && !url.trim()) return;
     onAnalyze({ message, url });
@@ -21,7 +16,6 @@ const AnalysisForm = ({ onAnalyze, isLoading }: AnalysisFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl space-y-5">
-      {/* Message Input */}
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-medium text-foreground">
           <MessageSquare className="h-4 w-4 text-primary" />
@@ -35,7 +29,6 @@ const AnalysisForm = ({ onAnalyze, isLoading }: AnalysisFormProps) => {
         />
       </div>
 
-      {/* URL Input */}
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Link className="h-4 w-4 text-primary" />

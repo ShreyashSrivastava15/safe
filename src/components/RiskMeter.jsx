@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 
-interface RiskMeterProps {
-  score: number;
-  size?: "sm" | "lg";
-}
-
-const RiskMeter = ({ score, size = "lg" }: RiskMeterProps) => {
+const RiskMeter = ({ score, size = "lg" }) => {
   const percentage = Math.round(score * 100);
 
   const { label, colorClass, glowClass } = useMemo(() => {
@@ -24,27 +19,11 @@ const RiskMeter = ({ score, size = "lg" }: RiskMeterProps) => {
   return (
     <div className={`flex flex-col items-center gap-3 ${glowClass} rounded-full p-1`}>
       <svg width={viewBox} height={viewBox} viewBox={`0 0 ${viewBox} ${viewBox}`} className="transform -rotate-90">
-        {/* Background circle */}
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
         <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke="hsl(var(--muted))"
-          strokeWidth={stroke}
-        />
-        {/* Score arc */}
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={stroke}
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="round"
-          className={`${colorClass} transition-all duration-1000 ease-out`}
+          cx={center} cy={center} r={radius} fill="none" stroke="currentColor"
+          strokeWidth={stroke} strokeDasharray={circumference} strokeDashoffset={dashOffset}
+          strokeLinecap="round" className={`${colorClass} transition-all duration-1000 ease-out`}
         />
       </svg>
       <div className="absolute flex flex-col items-center">
