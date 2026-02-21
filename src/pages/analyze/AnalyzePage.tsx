@@ -1,10 +1,25 @@
-import { useSearchParams, useParams } from "react-router-dom";
-import { Mail, Link as LinkIcon, CreditCard, ShoppingCart } from "lucide-react";
+import { useSearchParams, useParams, Navigate } from "react-router-dom";
+import { Mail, Link as LinkIcon, CreditCard, ShoppingCart, Loader2 } from "lucide-react";
 import AnalyzeView from "@/components/AnalyzeView";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AnalyzePage() {
     const { type } = useParams<{ type: string }>();
     const [searchParams] = useSearchParams();
+    const { user, isLoading } = useAuth();
+
+    // Redirect if not logged in
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-[60vh]">
+                <Loader2 className="animate-spin h-8 w-8 text-primary" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <Navigate to="/auth" replace />;
+    }
 
     // Get analysis type from path or query param
     const category = type || searchParams.get('category') || 'email';
