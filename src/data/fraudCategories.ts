@@ -13,80 +13,86 @@ export const fraudCategories: FraudCategory[] = [
     {
         id: "email-communication",
         name: "Email & Communication Frauds",
-        description: "Detection of malicious intent within email correspondence and structural communication patterns.",
+        description: "Detection of malicious intent, spear-phishing, and structural communication patterns using Transformer models.",
         supportedTypes: [
             "Email Phishing",
             "Spear Phishing",
             "Business Email Compromise (BEC)",
             "Email Spoofing",
             "Fake Invoice Emails",
-            "Scam / Fraudulent Promotional Emails"
+            "Scam Promotional Emails"
         ],
-        detectionApproach: "NLP + Intent Analysis",
+        detectionApproach: "NLP + Sentiment Analysis",
         exampleSignals: [
             "Urgent/Time-pressure language",
             "Sender-receiver mismatch",
             "Financial intent triggers",
             "Suspicious attachment context"
         ],
-        detectionType: "Real-time"
+        detectionType: "Real-time",
+        icon: "Mail"
     },
     {
         id: "message-based",
-        name: "Message-Based Frauds (SMS / Chat)",
+        name: "SMS & Messaging (Smishing)",
         description: "Protection against smishing and mobile-first social engineering across SMS and instant messaging platforms.",
         supportedTypes: [
             "SMS Phishing (Smishing)",
             "OTP Scam Messages",
             "Missed Call Scam Messages",
-            "Fake Alert / Bank Warning Messages"
+            "Fake Alert / Bank Warnings",
+            "WhatsApp / Telegram Scams"
         ],
-        detectionApproach: "NLP (shared pipeline with email)",
+        detectionApproach: "NLP Intent Recognition",
         exampleSignals: [
             "Suspicious OTP request context",
             "Shortened malicious links",
             "Impersonation of bank entities",
             "High-pressure call-to-action"
         ],
-        detectionType: "Real-time"
+        detectionType: "Real-time",
+        icon: "MessageSquare"
     },
     {
         id: "phishing-urls",
         name: "Phishing & Malicious URLs",
-        description: "Advanced analysis of URL features, domain reputation, and webpage metadata to identify deceptive links.",
+        description: "Advanced analysis of 30+ domain features and real-time WHOIS metadata to identify deceptive links.",
         supportedTypes: [
             "Phishing Websites",
             "Fake Login Pages",
             "Fake Shopping Websites",
             "Shortened / Obfuscated URLs",
-            "Newly Registered Malicious Domains"
+            "Newly Registered Domains"
         ],
-        detectionApproach: "ML-based URL Feature Analysis",
+        detectionApproach: "ML Feature Intelligence",
         exampleSignals: [
             "Homograph domain characters",
             "Low domain age (WHOIS)",
             "High entropy in path names",
             "Suspicious TLD (e.g., .xyz, .top)"
         ],
-        detectionType: "Real-time"
+        detectionType: "Real-time",
+        icon: "Link2"
     },
     {
         id: "e-commerce",
         name: "E-Commerce & Consumer Scams",
-        description: "Identifying fraudulent marketplace activities and deceptive consumer traps.",
+        description: "Identifying fraudulent marketplace activities, fake storefronts, and deceptive consumer traps.",
         supportedTypes: [
             "Non-Delivery Scams",
-            "Fake Seller / Marketplace Scams",
+            "Fake Marketplace Sellers",
             "Refund & Return Abuse",
-            "Subscription Trap Scams"
+            "Subscription Trap Scams",
+            "Phony Giveaway Frauds"
         ],
-        detectionApproach: "NLP + URL + Behavior Signals",
+        detectionApproach: "Multi-Modal Engine Consensus",
         exampleSignals: [
-            "Extremely low prices for high-value items",
-            "No contact information on seller page",
-            "Pressure to pay outside official platform",
-            "Misleading return policy structure"
+            "Extremely low prices",
+            "No contact info on seller page",
+            "Requests for off-platform pay",
+            "Misleading return policies"
         ],
-        detectionType: "Hybrid"
+        detectionType: "Hybrid",
+        icon: "ShoppingCart"
     }
 ];
