@@ -1,10 +1,7 @@
 fastapi
 uvicorn
-transformers
-torch
 pydantic
 python-dotenv
-scikit-learn
 requests
 tldextract
 python-whois

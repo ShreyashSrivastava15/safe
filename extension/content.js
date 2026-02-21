@@ -1,39 +1,43 @@
 // S.A.F.E. Guardian Content Script
 let scanTimeout = null;
-const API_URL = 'http://localhost:3000/api/v1/analyze';
+let currentSettings = {
+    token: '',
+    apiUrl: 'http://localhost:3000/api/v1'
+};
 
-// Initialize Guardian
-chrome.storage.local.get(['safeToken', 'guardianEnabled'], (settings) => {
-    if (settings.guardianEnabled && settings.safeToken) {
-        startGuardian(settings.safeToken);
+// Initialize
+chrome.storage.local.get(['safeToken', 'guardianEnabled', 'safeApiUrl'], (settings) => {
+    if (settings.safeApiUrl) currentSettings.apiUrl = settings.safeApiUrl;
+    if (settings.safeToken) currentSettings.token = settings.safeToken;
+
+    if (settings.guardianEnabled && currentSettings.token) {
+        startGuardian();
     }
 });
 
-// Listen for messages from Popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'GUARDIAN_TOGGLE') {
         if (message.enabled) {
-            chrome.storage.local.get(['safeToken'], (s) => {
-                if (s.safeToken) startGuardian(s.safeToken);
-            });
+            currentSettings.token = message.token || currentSettings.token;
+            currentSettings.apiUrl = message.apiUrl || currentSettings.apiUrl;
+            startGuardian();
         } else {
             stopGuardian();
         }
     } else if (message.type === 'MANUAL_SCAN') {
-        performScan(message.token);
+        currentSettings.token = message.token;
+        currentSettings.apiUrl = message.apiUrl;
+        performScan();
     }
 });
 
-function startGuardian(token) {
-    console.log("🛡️ S.A.F.E. Guardian Enabled");
+function startGuardian() {
+    performScan();
+    if (window._safeObserver) window._safeObserver.disconnect();
 
-    // Initial scan
-    performScan(token);
-
-    // Watch for dynamic content (new emails opened, infinite scroll)
     const observer = new MutationObserver(() => {
         if (scanTimeout) clearTimeout(scanTimeout);
-        scanTimeout = setTimeout(() => performScan(token), 1000);
+        scanTimeout = setTimeout(() => performScan(), 1500);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
@@ -41,41 +45,30 @@ function startGuardian(token) {
 }
 
 function stopGuardian() {
-    if (window._safeObserver) {
-        window._safeObserver.disconnect();
-        console.log("🛡️ S.A.F.E. Guardian Disabled");
-    }
+    if (window._safeObserver) window._safeObserver.disconnect();
 }
 
-async function performScan(token) {
+async function performScan() {
+    if (!currentSettings.token) return;
     const links = Array.from(document.querySelectorAll('a:not(.safe-scanned)'));
-    if (links.length === 0) return;
 
     for (let link of links) {
         const href = link.href;
-
-        // Skip safe/internal domains
-        if (!href.startsWith('http') ||
-            href.includes('mail.google.com') ||
-            href.includes('outlook.live.com') ||
-            href.includes('gstatic.com')) {
+        if (!href.startsWith('http') || href.includes(window.location.hostname)) {
             link.classList.add('safe-scanned');
             continue;
         }
 
-        link.classList.add('safe-scanned'); // Mark as processed
+        link.classList.add('safe-scanned');
 
         try {
-            const res = await fetch(API_URL, {
+            const res = await fetch(`${currentSettings.apiUrl}/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${currentSettings.token}`
                 },
-                body: JSON.stringify({
-                    url: href,
-                    fraud_type: 'url'
-                })
+                body: JSON.stringify({ url: href, fraud_type: 'url' })
             });
 
             if (res.ok) {
@@ -83,45 +76,25 @@ async function performScan(token) {
                 injectBadge(link, data);
             }
         } catch (e) {
-            console.error("S.A.F.E. API Connectivity Error", e);
+            console.error("S.A.F.E. Guardian API Error", e);
         }
     }
 }
 
 function injectBadge(link, data) {
-    let badgeText = "SAFE";
-    let badgeColor = "#22c55e"; // Emerald
-    let icon = "✅";
-
-    if (data.risk_level === 'SUSPICIOUS') {
-        badgeText = "SUSPICIOUS";
-        badgeColor = "#eab308"; // Amber
-        icon = "⚠️";
-    } else if (data.risk_level === 'FRAUD' || data.risk_level === 'HIGH') {
-        badgeText = "FRAUD DETECTED";
-        badgeColor = "#ef4444"; // Red
-        icon = "🛑";
-    } else {
-        // Don't show badges for every safe link to avoid clutter
-        return;
-    }
+    if (data.risk_level === 'SAFE') return;
 
     const badge = document.createElement('span');
-    badge.innerHTML = `${icon} <b>S.A.F.E: ${badgeText}</b>`;
-    badge.style.cssText = `
-        color: white;
-        background-color: ${badgeColor};
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-left: 8px;
-        display: inline-block;
-        vertical-align: middle;
-        font-family: sans-serif;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        cursor: help;
-    `;
-    badge.title = data.explanation || "Analyzed by S.A.F.E. AI Guardian";
+    const isFraud = data.risk_level === 'FRAUD' || data.risk_level === 'HIGH';
+    const color = isFraud ? "#ef4444" : "#eab308";
+    const icon = isFraud ? "🛑" : "⚠️";
 
+    badge.innerHTML = `${icon} S.A.F.E: ${data.risk_level}`;
+    badge.style.cssText = `
+        color: white; background: ${color}; font-size: 10px; font-weight: bold;
+        padding: 2px 6px; border-radius: 4px; margin-left: 8px;
+        display: inline-block; font-family: sans-serif;
+    `;
+    badge.title = data.explanation;
     link.insertAdjacentElement('afterend', badge);
 }

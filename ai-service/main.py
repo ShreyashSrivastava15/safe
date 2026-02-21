@@ -1,8 +1,16 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import os
-from dotenv import load_dotenv
+import logging
+import time
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("safe-ai-service")
 
 from engines.communication import analyze_communication
 from engines.url import analyze_url
@@ -10,9 +18,16 @@ from engines.job_offer import analyze_job_offer
 from engines.social_engineering import analyze_social_engineering
 from engines.transaction_fraud import analyze_transaction
 
-load_dotenv()
-
 app = FastAPI(title="S.A.F.E. AI Inference Service")
+
+# Middleware for request logging
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    logger.info(f"Method: {request.method} Path: {request.url.path} Duration: {duration:.2f}s Status: {response.status_code}")
+    return response
 
 class AnalysisRequest(BaseModel):
     content: Optional[str] = None
@@ -27,7 +42,7 @@ class AnalysisResponse(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "safe-ai-inference"}
+    return {"status": "ok", "service": "safe-ai-inference", "timestamp": time.time()}
 
 @app.post("/analyze/communication", response_model=AnalysisResponse)
 async def analyze_comm_endpoint(request: AnalysisRequest):
@@ -51,4 +66,6 @@ async def analyze_tx_endpoint(request: AnalysisRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Render passes the port via environment variable
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

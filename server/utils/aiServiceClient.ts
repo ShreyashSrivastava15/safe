@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_TIMEOUT = 30000;
 const MAX_RETRIES = 2;
 
 export interface EngineResponse {
