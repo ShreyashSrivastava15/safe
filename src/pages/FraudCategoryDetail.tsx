@@ -36,7 +36,13 @@ const FraudCategoryDetail = () => {
                         </p>
                     </div>
                     <Button asChild size="lg" className="bg-primary text-black hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
-                        <Link to={`/analyze?category=${category.id}`}>
+                        <Link to={
+                            category.id === 'email-communication' ? '/analyze/email' :
+                                category.id === 'message-based' ? '/analyze/email' : // SMS also uses email analysis view for messages
+                                    category.id === 'phishing-urls' ? '/analyze/url' :
+                                        category.id === 'e-commerce' ? '/analyze/ecommerce' :
+                                            '/dashboard'
+                        }>
                             <Play className="h-4 w-4 mr-2 fill-current" />
                             Run S.A.F.E. Analysis
                         </Link>
