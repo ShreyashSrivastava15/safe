@@ -10,7 +10,7 @@ import ResultCard from "@/components/ResultCard";
 import RiskMeter from "@/components/RiskMeter";
 
 interface AnalyzeViewProps {
-    fraud_type: 'email' | 'url' | 'transaction' | 'ecommerce';
+    fraud_type: 'email' | 'url' | 'transaction' | 'ecommerce' | 'message';
     title: string;
     description: string;
     icon: React.ReactNode;
@@ -36,7 +36,7 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
                 fraud_type,
             };
 
-            if (fraud_type === 'email' || fraud_type === 'ecommerce') {
+            if (fraud_type === 'email' || fraud_type === 'message' || fraud_type === 'ecommerce') {
                 data.message = message;
             }
             if (fraud_type === 'url' || fraud_type === 'ecommerce') {
@@ -103,11 +103,11 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
             <div className="flex flex-col items-center gap-12">
                 <form onSubmit={handleAnalyze} className="w-full max-w-2xl space-y-6 animate-fade-in">
                     <div className="space-y-4">
-                        {(fraud_type === 'email' || fraud_type === 'ecommerce') && (
+                        {(fraud_type === 'email' || fraud_type === 'message' || fraud_type === 'ecommerce') && (
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2 text-sm font-medium text-foreground">
                                     <MessageSquare className="h-4 w-4 text-primary" />
-                                    Suspicious Message / Content
+                                    {fraud_type === 'message' ? 'SMS / Text Message' : 'Suspicious Message / Content'}
                                 </Label>
                                 <Textarea
                                     value={message}

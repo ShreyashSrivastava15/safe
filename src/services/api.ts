@@ -10,7 +10,7 @@ export interface AnalysisRequest {
         country: string;
         timestamp: string;
     };
-    fraud_type: 'email' | 'url' | 'transaction' | 'ecommerce';
+    fraud_type: 'email' | 'url' | 'transaction' | 'ecommerce' | 'message';
 }
 
 export interface AnalysisResponse {

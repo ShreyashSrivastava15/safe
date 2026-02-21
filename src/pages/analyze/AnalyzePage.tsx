@@ -1,5 +1,5 @@
 import { useSearchParams, useParams, Navigate } from "react-router-dom";
-import { Mail, Link as LinkIcon, CreditCard, ShoppingCart, Loader2 } from "lucide-react";
+import { Mail, Link as LinkIcon, CreditCard, ShoppingCart, Loader2, MessageSquare } from "lucide-react";
 import AnalyzeView from "@/components/AnalyzeView";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -26,7 +26,15 @@ export default function AnalyzePage() {
 
     // Simple mapping to normalized types
     const getScannerConfig = () => {
-        if (category.includes('email') || category.includes('communication') || category.includes('message')) {
+        if (category === 'message-based' || category.includes('sms')) {
+            return {
+                type: 'message' as const,
+                title: 'SMS / Messaging Risk',
+                description: 'Verify suspicious text messages and instant communication for mobile fraud.',
+                icon: <MessageSquare className="h-12 w-12 text-green-500" />
+            };
+        }
+        if (category.includes('email') || category.includes('communication')) {
             return {
                 type: 'email' as const,
                 title: 'Email / Communication Risk',

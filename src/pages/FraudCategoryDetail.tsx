@@ -38,7 +38,7 @@ const FraudCategoryDetail = () => {
                     <Button asChild size="lg" className="bg-primary text-black hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
                         <Link to={
                             category.id === 'email-communication' ? '/analyze/email' :
-                                category.id === 'message-based' ? '/analyze/email' :
+                                category.id === 'message-based' ? '/analyze/message' :
                                     category.id === 'phishing-urls' ? '/analyze/url' :
                                         category.id === 'e-commerce' ? '/analyze/ecommerce' :
                                             '/analyze/email' // Default
