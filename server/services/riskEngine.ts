@@ -1,8 +1,6 @@
 import { analyzeText } from './nlpService';
 import { analyzeUrl } from './urlService';
 import { analyzeTransaction } from './transactionService';
-import { analyzeJobOffer } from './jobOfferService';
-import { analyzeSocialEngineering } from './socialEngineeringService';
 import { EngineResponse } from '../utils/aiServiceClient';
 
 interface RiskAnalysisResult {
@@ -10,8 +8,6 @@ interface RiskAnalysisResult {
         nlp: number;
         url: number;
         transaction: number;
-        job_offer: number;
-        social_engineering: number;
     };
     signals: string[];
     final_score: number;
@@ -20,41 +16,85 @@ interface RiskAnalysisResult {
     explanation: string;
 }
 
-export const analyzeRisk = async (data: { message: string; url: string; transaction: any }): Promise<RiskAnalysisResult> => {
+export const analyzeRisk = async (data: { message: string; url: string; transaction: any; fraud_type: string }): Promise<RiskAnalysisResult> => {
     const startTime = Date.now();
 
-    // Run all 5 engines in parallel
-    const [nlpResult, urlResult, txResult, jobResult, socialResult] = await Promise.all([
-        analyzeText(data.message || ''),
-        analyzeUrl(data.url || ''),
-        analyzeTransaction(data.transaction || {}),
-        analyzeJobOffer(data.message || ''),
-        analyzeSocialEngineering(data.message || ''),
-    ]);
+    let runNlp = false;
+    let runUrl = false;
+    let runTx = false;
 
-    // Production-grade weights
-    const weights = {
-        nlp: 0.25,
-        url: 0.25,
-        transaction: 0.20,
-        job_offer: 0.15,
-        social_engineering: 0.15
+    switch (data.fraud_type) {
+        case 'email':
+            runNlp = true;
+            break;
+        case 'url':
+            runUrl = true;
+            break;
+        case 'transaction':
+            runTx = true;
+            break;
+        case 'ecommerce':
+            runNlp = true;
+            runUrl = true;
+            break;
+        default:
+            // Fallback for missing/invalid fraud_type
+            runNlp = true;
+            runUrl = true;
+            runTx = true;
+            break;
+    }
+
+    const promises: Promise<any>[] = [];
+    const keys: string[] = [];
+
+    if (runNlp) {
+        promises.push(analyzeText(data.message || ''));
+        keys.push('nlp');
+    }
+    if (runUrl) {
+        promises.push(analyzeUrl(data.url || ''));
+        keys.push('url');
+    }
+    if (runTx) {
+        promises.push(analyzeTransaction(data.transaction || {}));
+        keys.push('tx');
+    }
+
+    const resultsArray = await Promise.all(promises);
+
+    const results: Record<string, any> = {};
+    keys.forEach((key, index) => {
+        results[key] = resultsArray[index];
+    });
+
+    const activeEnginesCount = keys.length;
+    let finalScore = 0;
+
+    // Default weights
+    const defaultWeights = {
+        nlp: 0.40,
+        url: 0.30,
+        tx: 0.30,
     };
 
-    const finalScore = (nlpResult.risk_score * weights.nlp) +
-        (urlResult.risk_score * weights.url) +
-        (txResult.risk_score * weights.transaction) +
-        (jobResult.risk_score * weights.job_offer) +
-        (socialResult.risk_score * weights.social_engineering);
+    if (activeEnginesCount === 1) {
+        finalScore = results[keys[0]].risk_score;
+    } else if (activeEnginesCount === 2) {
+        // e.g. ecommerce (nlp + url)
+        finalScore = (results.nlp.risk_score * 0.60) + (results.url.risk_score * 0.40);
+    } else {
+        finalScore = (results.nlp.risk_score * defaultWeights.nlp) +
+            (results.url.risk_score * defaultWeights.url) +
+            (results.tx.risk_score * defaultWeights.tx);
+    }
 
-    // Aggregate signals from all engines
-    const allSignals = [
-        ...nlpResult.signals.map(s => `[Comm] ${s}`),
-        ...urlResult.signals.map(s => `[URL] ${s}`),
-        ...txResult.signals.map(s => `[TX] ${s}`),
-        ...jobResult.signals.map(s => `[Job] ${s}`),
-        ...socialResult.signals.map(s => `[SocEng] ${s}`)
-    ].filter(s => s && !s.includes('No significant') && !s.includes('No typical') && !s.includes('AI Engine error'));
+    let allSignals: string[] = [];
+    if (results.nlp) allSignals.push(...results.nlp.signals.map((s: string) => `[Comm] ${s}`));
+    if (results.url) allSignals.push(...results.url.signals.map((s: string) => `[URL] ${s}`));
+    if (results.tx) allSignals.push(...results.tx.signals.map((s: string) => `[TX] ${s}`));
+
+    allSignals = allSignals.filter(s => s && !s.includes('No significant') && !s.includes('No typical') && !s.includes('AI Engine error'));
 
     let verdict: 'SAFE' | 'SUSPICIOUS' | 'FRAUDULENT' = 'SAFE';
     let riskLevel: 'SAFE' | 'SUSPICIOUS' | 'FRAUD' = 'SAFE';
@@ -67,26 +107,22 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
         riskLevel = 'SUSPICIOUS';
     }
 
-    // Hardening: Enforce signals for SUSPICIOUS or FRAUD
     if (riskLevel !== 'SAFE' && allSignals.length === 0) {
         allSignals.push("[System] Suspicious activity detected based on aggregate score indicators.");
     }
 
     const totalLatency = Date.now() - startTime;
-    console.log(`[Performance] Multi-modal analysis completed in ${totalLatency}ms`);
-    console.log(`[Latency] NLP: ${nlpResult.latency_ms}ms, URL: ${urlResult.latency_ms}ms, TX: ${txResult.latency_ms}ms, Job: ${jobResult.latency_ms}ms, Social: ${socialResult.latency_ms}ms`);
+    console.log(`[Performance] Multi-modal analysis completed in ${totalLatency}ms for ${data.fraud_type}`);
 
     const explanation = allSignals.length > 0
         ? `S.A.F.E. Analysis Summary: ${allSignals.slice(0, 4).join('; ')}.`
-        : "Verified safe. No significant fraud signatures detected across 5-tier detection pipeline.";
+        : `Verified safe. No significant fraud signatures detected by the active engines.`;
 
     return {
         scores: {
-            nlp: nlpResult.risk_score,
-            url: urlResult.risk_score,
-            transaction: txResult.risk_score,
-            job_offer: jobResult.risk_score,
-            social_engineering: socialResult.risk_score
+            nlp: results.nlp ? results.nlp.risk_score : 0,
+            url: results.url ? results.url.risk_score : 0,
+            transaction: results.tx ? results.tx.risk_score : 0,
         },
         signals: allSignals,
         final_score: parseFloat(finalScore.toFixed(2)),

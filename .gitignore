@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+/generated/prisma
+
+.env
+# Python
+ai-service/__pycache__/
+__pycache__/
+ai-service/models/
+/test_output.txt
+/test.json

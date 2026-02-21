@@ -1,6 +1,7 @@
 import express from 'express';
 import { analyzeRisk } from '../services/riskEngine';
 import { supabase } from '../utils/supabaseClient';
+import { prisma } from '../utils/prisma';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -17,12 +18,28 @@ const analyzeSchema = z.object({
         geo_shift: z.boolean().optional(),
         device_change: z.boolean().optional(),
     }).optional(),
+    fraud_type: z.enum(['email', 'url', 'transaction', 'ecommerce']),
 }).refine(data => data.message || data.url || data.transaction, {
     message: "At least one input (message, url, transaction) is required",
 });
 
 router.post('/analyze', async (req, res) => {
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+        }
+        const token = authHeader.split(' ')[1];
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Unauthorized', details: authError });
+        }
+
+        if (!user.email_confirmed_at) {
+            return res.status(401).json({ error: 'Email must be verified to perform analysis.' });
+        }
+
         // Validate input
         const validationResult = analyzeSchema.safeParse(req.body);
 
@@ -33,31 +50,34 @@ router.post('/analyze', async (req, res) => {
             });
         }
 
-        const { message, url, transaction } = validationResult.data;
+        const { message, url, transaction, fraud_type } = validationResult.data;
 
         const result = await analyzeRisk({
             message: message || '',
             url: url || '',
-            transaction: transaction
+            transaction: transaction,
+            fraud_type: fraud_type
         });
 
-        // Log to Supabase with enhanced metadata
-        const { error } = await supabase
-            .from('analysis_logs')
-            .insert({
-                message: message || null,
-                url: url || null,
-                transaction_json: transaction || null,
-                scores_json: result.scores,
-                signals: result.signals, // Assuming this column exists or is handled by jsonb
-                final_score: result.final_score,
-                risk_level: result.risk_level,
-                verdict: result.verdict,
-                explanation: result.explanation
+        // Log to database using Prisma
+        try {
+            await prisma.analysisLog.create({
+                data: {
+                    user_id: user.id,
+                    fraud_type: fraud_type,
+                    message: message || null,
+                    url: url || null,
+                    transaction_json: transaction || ({} as any),
+                    scores_json: result.scores as any,
+                    signals: result.signals as any,
+                    final_score: result.final_score,
+                    risk_level: result.risk_level,
+                    verdict: result.verdict,
+                    explanation: result.explanation
+                }
             });
-
-        if (error) {
-            console.error('Supabase logging error:', error);
+        } catch (dbError) {
+            console.error('Prisma logging error:', dbError);
         }
 
         res.json(result);

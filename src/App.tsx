@@ -5,8 +5,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Dashboard from "@/pages/Dashboard";
-import Analyze from "@/pages/Analyze";
 import History from "@/pages/History";
+import FraudCoverage from "@/pages/FraudCoverage";
+import FraudCategoryDetail from "@/pages/FraudCategoryDetail";
+import { AuthProvider } from "@/contexts/AuthContext";
+import PrivateRoute from "@/components/PrivateRoute";
+import Auth from "@/pages/Auth";
+import Verified from "@/pages/Verified";
+import Admin from "@/pages/Admin";
+import AnalyzeEmail from "@/pages/analyze/AnalyzeEmail";
+import AnalyzeUrl from "@/pages/analyze/AnalyzeUrl";
+import AnalyzeTransaction from "@/pages/analyze/AnalyzeTransaction";
+import AnalyzeEcommerce from "@/pages/analyze/AnalyzeEcommerce";
 
 const queryClient = new QueryClient();
 
@@ -23,14 +33,26 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-                <Layout>
-                    <Routes>
-                        <Route path="/" element={<Navigate to="/analyze" replace />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/analyze" element={<Analyze />} />
-                        <Route path="/history" element={<History />} />
-                    </Routes>
-                </Layout>
+                <AuthProvider>
+                    <Layout>
+                        <Routes>
+                            <Route path="/auth" element={<Auth />} />
+                            <Route path="/verified" element={<Verified />} />
+                            <Route path="/admin" element={<Admin />} />
+                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="/fraud-coverage" element={<FraudCoverage />} />
+                            <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
+                            <Route element={<PrivateRoute />}>
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/analyze/email" element={<AnalyzeEmail />} />
+                                <Route path="/analyze/url" element={<AnalyzeUrl />} />
+                                <Route path="/analyze/transaction" element={<AnalyzeTransaction />} />
+                                <Route path="/analyze/ecommerce" element={<AnalyzeEcommerce />} />
+                                <Route path="/history" element={<History />} />
+                            </Route>
+                        </Routes>
+                    </Layout>
+                </AuthProvider>
             </BrowserRouter>
         </TooltipProvider>
     </QueryClientProvider>

@@ -26,7 +26,10 @@ app.use('/api/', limiter);
 
 // Routes
 import analyzeRoutes from './routes/analyze';
+import adminRoutes from './routes/admin';
+
 app.use('/api/v1', analyzeRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
