@@ -40,6 +40,7 @@ const App = () => (
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/verified" element={<Verified />} />
                             <Route path="/admin" element={<Admin />} />
+                            <Route path="/analyze" element={<Navigate to="/fraud-coverage" replace />} />
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/fraud-coverage" element={<FraudCoverage />} />
                             <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
