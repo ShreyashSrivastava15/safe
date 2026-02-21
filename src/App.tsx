@@ -39,13 +39,12 @@ const App = () => (
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/verified" element={<Verified />} />
                             <Route path="/admin" element={<Admin />} />
-                            <Route path="/analyze" element={<AnalyzePage />} />
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/fraud-coverage" element={<FraudCoverage />} />
                             <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
                             <Route element={<PrivateRoute />}>
                                 <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/analyze/:type" element={<AnalyzePage />} />
+                                <Route path="/analyze/:type?" element={<AnalyzePage />} />
                                 <Route path="/history" element={<History />} />
                             </Route>
                             <Route path="*" element={

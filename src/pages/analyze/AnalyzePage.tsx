@@ -54,13 +54,21 @@ export default function AnalyzePage() {
     };
 
     const config = getScannerConfig();
+    console.log("Rendering AnalyzeView with config:", config.type);
+
+    if (!config) {
+        console.error("Critical: getScannerConfig returned undefined!");
+        return <div>Error: Could not determine scanner type.</div>;
+    }
 
     return (
-        <AnalyzeView
-            fraud_type={config.type}
-            title={config.title}
-            description={config.description}
-            icon={config.icon}
-        />
+        <div key={config.type} className="animate-in fade-in duration-500">
+            <AnalyzeView
+                fraud_type={config.type}
+                title={config.title}
+                description={config.description}
+                icon={config.icon}
+            />
+        </div>
     );
 }
