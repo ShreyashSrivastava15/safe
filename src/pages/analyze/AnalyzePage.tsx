@@ -26,7 +26,7 @@ export default function AnalyzePage() {
 
     // Simple mapping to normalized types
     const getScannerConfig = () => {
-        if (category === 'message-based' || category.includes('sms')) {
+        if (category === 'message-based' || category === 'message' || category.includes('sms')) {
             return {
                 type: 'message' as const,
                 title: 'SMS / Messaging Risk',
