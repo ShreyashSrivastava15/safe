@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeRisk, AnalysisResponse, AnalysisRequest } from "@/services/api";
+import { fetchRecentEmails } from "@/services/gmail";
 import { Shield, Link, MessageSquare, CreditCard, Loader2, ShoppingCart, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,17 +31,36 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
         setIsLoading(true);
         toast({
             title: "Connecting to Inbox...",
-            description: "Scanning recent messages for potential threats...",
+            description: "Fetching your recent unread emails securely from Gmail...",
         });
 
-        setTimeout(() => {
-            setMessage("URGENT: Your account has been suspended. Please click here to verify your identity immediately or your account will be permanently closed: http://secure-update-account-now.com/verify");
-            setIsLoading(false);
+        try {
+            const emails = await fetchRecentEmails();
+
+            if (emails && emails.length > 0) {
+                // For this demo, pick the first unread email
+                const firstEmail = emails[0];
+                const content = `Subject: ${firstEmail.subject}\nFrom: ${firstEmail.sender}\n\n${firstEmail.body}`;
+                setMessage(content.trim());
+                toast({
+                    title: "Scan Complete",
+                    description: `Found ${emails.length} unread message(s). Populating the most recent one.`,
+                });
+            } else {
+                toast({
+                    title: "No Unread Emails",
+                    description: "We couldn't find any unread emails in your inbox.",
+                });
+            }
+        } catch (error: any) {
             toast({
-                title: "Scan Complete",
-                description: "Found 1 suspicious message. Auto-populated for analysis.",
+                title: "Failed to fetch emails",
+                description: error.message || "Please make sure to allow Gmail access when signing in.",
+                variant: "destructive",
             });
-        }, 2500);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleAnalyze = async (e: React.FormEvent) => {
