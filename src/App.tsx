@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import Dashboard from "@/pages/Dashboard";
@@ -20,6 +20,23 @@ import AnalyzeTransaction from "@/pages/analyze/AnalyzeTransaction";
 import AnalyzeEcommerce from "@/pages/analyze/AnalyzeEcommerce";
 
 const queryClient = new QueryClient();
+
+const LegacyRedirect = () => {
+    const [searchParams] = useSearchParams();
+    const category = searchParams.get('category');
+
+    switch (category) {
+        case 'email-communication':
+        case 'message-based':
+            return <Navigate to="/analyze/email" replace />;
+        case 'phishing-urls':
+            return <Navigate to="/analyze/url" replace />;
+        case 'e-commerce':
+            return <Navigate to="/analyze/ecommerce" replace />;
+        default:
+            return <Navigate to="/fraud-coverage" replace />;
+    }
+};
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
     <div className="min-h-screen flex flex-col">
@@ -40,7 +57,7 @@ const App = () => (
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/verified" element={<Verified />} />
                             <Route path="/admin" element={<Admin />} />
-                            <Route path="/analyze" element={<Navigate to="/fraud-coverage" replace />} />
+                            <Route path="/analyze" element={<LegacyRedirect />} />
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/fraud-coverage" element={<FraudCoverage />} />
                             <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
