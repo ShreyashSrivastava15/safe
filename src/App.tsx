@@ -1,3 +1,4 @@
+console.log("S.A.F.E. App Initializing...");
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +25,7 @@ const queryClient = new QueryClient();
 const LegacyRedirect = () => {
     const [searchParams] = useSearchParams();
     const category = searchParams.get('category');
+    console.log("LegacyRedirect triggered. Category:", category);
 
     switch (category) {
         case 'email-communication':
