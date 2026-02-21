@@ -23,6 +23,7 @@ export default function AnalyzePage() {
 
     // Get analysis type from path or query param
     const category = type || searchParams.get('category') || 'email';
+    console.log("AnalyzePage Trace:", { type, category, searchParam: searchParams.get('category') });
 
     // Simple mapping to normalized types
     const getScannerConfig = () => {
