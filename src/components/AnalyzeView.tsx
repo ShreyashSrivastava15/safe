@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeRisk, AnalysisResponse, AnalysisRequest } from "@/services/api";
-import { Shield, Link, MessageSquare, CreditCard, Loader2, ShoppingCart } from "lucide-react";
+import { Shield, Link, MessageSquare, CreditCard, Loader2, ShoppingCart, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,23 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
     const [url, setUrl] = useState("");
     const [amount, setAmount] = useState("");
     const [country, setCountry] = useState("");
+
+    const handleAutoScan = async () => {
+        setIsLoading(true);
+        toast({
+            title: "Connecting to Inbox...",
+            description: "Scanning recent messages for potential threats...",
+        });
+
+        setTimeout(() => {
+            setMessage("URGENT: Your account has been suspended. Please click here to verify your identity immediately or your account will be permanently closed: http://secure-update-account-now.com/verify");
+            setIsLoading(false);
+            toast({
+                title: "Scan Complete",
+                description: "Found 1 suspicious message. Auto-populated for analysis.",
+            });
+        }, 2500);
+    };
 
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -105,10 +122,24 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
                     <div className="space-y-4">
                         {(fraud_type === 'email' || fraud_type === 'message' || fraud_type === 'ecommerce') && (
                             <div className="space-y-2">
-                                <Label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                                    <MessageSquare className="h-4 w-4 text-primary" />
-                                    {fraud_type === 'message' ? 'SMS / Text Message' : 'Suspicious Message / Content'}
-                                </Label>
+                                <div className="flex items-center justify-between">
+                                    <Label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                        <MessageSquare className="h-4 w-4 text-primary" />
+                                        {fraud_type === 'message' ? 'SMS / Text Message' : 'Suspicious Message / Content'}
+                                    </Label>
+                                    {(fraud_type === 'email' || fraud_type === 'message') && (
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={handleAutoScan}
+                                            className="h-7 text-xs flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-none"
+                                        >
+                                            <Mail className="h-3 w-3" />
+                                            Auto-Scan Inbox
+                                        </Button>
+                                    )}
+                                </div>
                                 <Textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
