@@ -15,30 +15,10 @@ import PrivateRoute from "@/components/PrivateRoute";
 import Auth from "@/pages/Auth";
 import Verified from "@/pages/Verified";
 import Admin from "@/pages/Admin";
-import AnalyzeEmail from "@/pages/analyze/AnalyzeEmail";
-import AnalyzeUrl from "@/pages/analyze/AnalyzeUrl";
-import AnalyzeTransaction from "@/pages/analyze/AnalyzeTransaction";
-import AnalyzeEcommerce from "@/pages/analyze/AnalyzeEcommerce";
+import AnalyzePage from "@/pages/analyze/AnalyzePage";
 
 const queryClient = new QueryClient();
 
-const LegacyRedirect = () => {
-    const [searchParams] = useSearchParams();
-    const category = searchParams.get('category');
-    console.log("LegacyRedirect triggered. Category:", category);
-
-    switch (category) {
-        case 'email-communication':
-        case 'message-based':
-            return <Navigate to="/analyze/email" replace />;
-        case 'phishing-urls':
-            return <Navigate to="/analyze/url" replace />;
-        case 'e-commerce':
-            return <Navigate to="/analyze/ecommerce" replace />;
-        default:
-            return <Navigate to="/fraud-coverage" replace />;
-    }
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
     <div className="min-h-screen flex flex-col">
@@ -59,16 +39,13 @@ const App = () => (
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/verified" element={<Verified />} />
                             <Route path="/admin" element={<Admin />} />
-                            <Route path="/analyze" element={<LegacyRedirect />} />
+                            <Route path="/analyze" element={<AnalyzePage />} />
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/fraud-coverage" element={<FraudCoverage />} />
                             <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
                             <Route element={<PrivateRoute />}>
                                 <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/analyze/email" element={<AnalyzeEmail />} />
-                                <Route path="/analyze/url" element={<AnalyzeUrl />} />
-                                <Route path="/analyze/transaction" element={<AnalyzeTransaction />} />
-                                <Route path="/analyze/ecommerce" element={<AnalyzeEcommerce />} />
+                                <Route path="/analyze/:type" element={<AnalyzePage />} />
                                 <Route path="/history" element={<History />} />
                             </Route>
                             <Route path="*" element={
