@@ -4,7 +4,7 @@ import AnalyzeView from "@/components/AnalyzeView";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AnalyzePage() {
-    const { type } = useParams<{ type: string }>();
+    const { category: pathCategory } = useParams<{ category: string }>();
     const [searchParams] = useSearchParams();
     const { user, isLoading } = useAuth();
 
@@ -22,8 +22,8 @@ export default function AnalyzePage() {
     }
 
     // Get analysis type from path or query param
-    const category = type || searchParams.get('category') || 'email';
-    console.log("AnalyzePage Trace:", { type, category, searchParam: searchParams.get('category') });
+    const category = pathCategory || searchParams.get('category') || 'email';
+    console.log("AnalyzePage Trace V2:", { pathCategory, category, searchParam: searchParams.get('category') });
 
     // Simple mapping to normalized types
     const getScannerConfig = () => {

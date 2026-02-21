@@ -42,7 +42,7 @@ const App = () => (
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/fraud-coverage" element={<FraudCoverage />} />
                             <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
-                            <Route path="/analyze/:type?" element={<AnalyzePage />} />
+                            <Route path="/analyze/:category?" element={<AnalyzePage />} />
                             <Route element={<PrivateRoute />}>
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/history" element={<History />} />
