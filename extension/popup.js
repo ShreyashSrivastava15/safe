@@ -10,7 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved settings
     chrome.storage.local.get(['safeToken', 'guardianEnabled', 'safeApiUrl'], (result) => {
         if (result.safeToken) tokenInput.value = result.safeToken;
-        if (result.safeApiUrl) apiUrlInput.value = result.safeApiUrl;
+        if (result.safeApiUrl) {
+            apiUrlInput.value = result.safeApiUrl;
+        } else {
+            apiUrlInput.value = 'https://safe-gateway-lnlh.onrender.com/api/v1';
+        }
         if (result.guardianEnabled !== undefined) guardianToggle.checked = result.guardianEnabled;
     });
 

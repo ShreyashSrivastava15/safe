@@ -1,8 +1,8 @@
 // S.A.F.E. Guardian Content Script
 let scanTimeout = null;
-let currentSettings = {
+const currentSettings = {
     token: '',
-    apiUrl: 'http://localhost:3000/api/v1'
+    apiUrl: 'https://safe-gateway-lnlh.onrender.com/api/v1'
 };
 
 // Initialize
