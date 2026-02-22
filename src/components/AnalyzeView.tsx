@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { analyzeRisk, AnalysisResponse, AnalysisRequest } from "@/services/api";
-import { fetchRecentEmails } from "@/services/gmail";
+import { fetchRecentEmails, checkConnectionStatus } from "@/services/gmail";
 import { Shield, Link, MessageSquare, CreditCard, Loader2, ShoppingCart, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +21,7 @@ interface AnalyzeViewProps {
 
 export default function AnalyzeView({ fraud_type, title, description, icon }: AnalyzeViewProps) {
     const { toast } = useToast();
+    const { session, user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<AnalysisResponse | null>(null);
 
@@ -27,14 +30,35 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
     const [amount, setAmount] = useState("");
     const [country, setCountry] = useState("");
 
+    const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            if (user?.id) {
+                const connected = await checkConnectionStatus(user.id);
+                setIsConnected(connected);
+            }
+        };
+        checkStatus();
+    }, [user]);
+
+    const handleConnectGmail = async () => {
+        if (!user?.id) return;
+        setIsLoading(true);
+        // Redirect to the backend OAuth flow
+        const authUrl = `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}/auth/google?userId=${user.id}`;
+        window.location.href = authUrl;
+    };
+
     const handleAutoScan = async () => {
         setIsLoading(true);
-        toast({
-            title: "Connecting to Inbox...",
-            description: "Fetching your recent unread emails securely from Gmail...",
-        });
 
         try {
+            toast({
+                title: "Connecting to Inbox...",
+                description: "Fetching your recent unread emails securely from Gmail...",
+            });
+
             const emails = await fetchRecentEmails();
 
             if (emails && emails.length > 0) {
@@ -55,9 +79,12 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
         } catch (error: any) {
             toast({
                 title: "Failed to fetch emails",
-                description: error.message || "Please make sure to allow Gmail access when signing in.",
+                description: error.message || "Please make sure your Gmail is connected.",
                 variant: "destructive",
             });
+            if (error.message.includes("connect your Google account")) {
+                setIsConnected(false);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -148,16 +175,35 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
                                         {fraud_type === 'message' ? 'SMS / Text Message' : 'Suspicious Message / Content'}
                                     </Label>
                                     {(fraud_type === 'email' || fraud_type === 'message') && (
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={handleAutoScan}
-                                            className="h-7 text-xs flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-none"
-                                        >
-                                            <Mail className="h-3 w-3" />
-                                            Auto-Scan Inbox
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            {isConnected === null ? (
+                                                <div className="h-7 w-24 bg-muted animate-pulse rounded" />
+                                            ) : !isConnected ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleConnectGmail}
+                                                    className="h-7 text-xs flex items-center gap-1.5 border-primary/20 hover:bg-primary/5"
+                                                    disabled={isLoading}
+                                                >
+                                                    <Mail className="h-3 w-3" />
+                                                    Connect Gmail
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={handleAutoScan}
+                                                    className="h-7 text-xs flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-none"
+                                                    disabled={isLoading}
+                                                >
+                                                    <Mail className="h-3 w-3" />
+                                                    Auto-Scan Inbox
+                                                </Button>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                                 <Textarea

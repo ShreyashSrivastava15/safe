@@ -34,3 +34,15 @@ model Profile {
 
   @@map("profiles")
 }
+
+model GoogleToken {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id       String   @unique @db.Uuid
+  access_token  String
+  refresh_token String?
+  expiry_date   BigInt?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("google_tokens")
+}
