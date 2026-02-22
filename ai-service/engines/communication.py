@@ -4,7 +4,8 @@ import re
 
 try:
     from transformers import pipeline
-    MODEL_NAME = "mshenoda/roberta-spam"
+    # Using a TINY model to fit in Render's 512MB free tier
+    MODEL_NAME = "mrm8488/bert-tiny-finetuned-sms-spam-detection"
     classifier = pipeline("text-classification", model=MODEL_NAME, device=-1)
 except ImportError:
     print("Transformers/Torch not found. Using heuristic fallback.")
