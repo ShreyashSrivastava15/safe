@@ -1,8 +1,10 @@
-import torch
-from transformers import pipeline
 import re
 
+classifier = None
+MODEL_NAME = "heuristic-v1"
+
 try:
+    import torch
     from transformers import pipeline
     # Using a TINY model to fit in Render's 512MB free tier
     MODEL_NAME = "mrm8488/bert-tiny-finetuned-sms-spam-detection"
@@ -17,6 +19,7 @@ except Exception as e:
     MODEL_NAME = "fallback-v1"
 
 async def analyze_communication(content: str):
+    global MODEL_NAME
     signals = []
     
     if not classifier:
