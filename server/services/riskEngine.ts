@@ -94,7 +94,7 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
     if (results.url) allSignals.push(...results.url.signals.map((s: string) => `[URL] ${s}`));
     if (results.tx) allSignals.push(...results.tx.signals.map((s: string) => `[TX] ${s}`));
 
-    allSignals = allSignals.filter(s => s && !s.includes('No significant') && !s.includes('No typical') && !s.includes('AI Engine error'));
+    allSignals = allSignals.filter(s => s && !s.includes('No significant') && !s.includes('No typical'));
 
     let verdict: 'SAFE' | 'SUSPICIOUS' | 'FRAUDULENT' = 'SAFE';
     let riskLevel: 'SAFE' | 'SUSPICIOUS' | 'FRAUD' = 'SAFE';

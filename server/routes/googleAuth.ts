@@ -26,7 +26,16 @@ router.get('/google', (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email'
     ];
 
-    const oauth2Client = getBaseOAuth2Client();
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    const dynamicRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/auth/google/callback`;
+
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        dynamicRedirectUri
+    );
+
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
@@ -46,7 +55,15 @@ router.get('/google/callback', async (req, res) => {
     }
 
     try {
-        const oauth2Client = getBaseOAuth2Client();
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.headers.host;
+        const dynamicRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/auth/google/callback`;
+
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            dynamicRedirectUri
+        );
         const { tokens } = await oauth2Client.getToken(code as string);
 
         // Save tokens to database

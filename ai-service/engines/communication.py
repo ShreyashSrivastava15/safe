@@ -20,16 +20,13 @@ async def analyze_communication(content: str):
     signals = []
     
     if not classifier:
-        return {
-            "risk_score": 0.5,
-            "confidence": "LOW",
-            "signals": ["Model failed to load, falling back to heuristics"],
-            "model_version": "fallback-v1"
-        }
-
-    # NLP Inference
-    result = classifier(content)[0]
-    nlp_score = result['score'] if result['label'] == 'LABEL_1' else (1 - result['score'])
+        signals.append("Model failed to load, falling back to heuristics")
+        nlp_score = 0.1
+        MODEL_NAME = "heuristic-v1"
+    else:
+        # NLP Inference
+        result = classifier(content)[0]
+        nlp_score = result['score'] if result['label'] == 'LABEL_1' else (1 - result['score'])
     
     # Heuristic Augmentation
     urgency_keywords = ['urgent', 'immediate', 'action required', 'expires', 'limited time']
