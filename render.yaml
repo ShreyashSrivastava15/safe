@@ -1,0 +1,41 @@
+services:
+  # Node.js API Gateway
+  - type: web
+    name: safe-gateway
+    runtime: node
+    plan: free
+    region: singapore # Change as needed
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromContext: env_group
+        name: safe-secrets
+
+  # Python AI Inference Service
+  - type: web
+    name: safe-ai
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r ai-service/requirements.txt
+    startCommand: cd ai-service && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: NODE_TLS_REJECT_UNAUTHORIZED
+        value: "0"
+
+envGroups:
+  - name: safe-secrets
+    envVars:
+      - key: DATABASE_URL
+      - key: VITE_SUPABASE_URL
+      - key: VITE_SUPABASE_ANON_KEY
+      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: GOOGLE_CLIENT_ID
+      - key: GOOGLE_CLIENT_SECRET
+      - key: GOOGLE_REDIRECT_URI
+      - key: AI_SERVICE_URL
+      - key: FRONTEND_URL
