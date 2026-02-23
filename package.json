@@ -11,7 +11,7 @@
     "server": "tsx server/index.ts",
     "start": "tsx server/index.ts",
     "prisma:generate": "prisma generate",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev\" \"python ai-service/main.py\""
+    "dev:all": "concurrently \"npm run server\" \"npm run dev\" \"cd ai-service && uvicorn main:app --reload --port 8000\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

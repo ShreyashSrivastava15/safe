@@ -8,68 +8,75 @@ import requests
 async def analyze_url(url: str):
     signals = []
     score = 0.1
+    url_lower = url.lower()
     
-    # 1. Feature-based scoring
-    if len(url) > 75:
-        signals.append("Excessively long URL")
-        score += 0.2
-        
-    # Entropy calculation for hostname
+    # Extract hostname
+    hostname = ""
     try:
         ext = tldextract.extract(url)
         hostname = ext.domain
-        if hostname:
-            entropy = -sum(p * math.log2(p) for p in (hostname.count(c) / len(hostname) for c in set(hostname)))
-            if entropy > 3.5:
-                signals.append("High entropy domain name (random-like)")
-                score += 0.2
+        subdomain = ext.subdomain
+        full_host = f"{subdomain}.{hostname}.{ext.suffix}" if subdomain else f"{hostname}.{ext.suffix}"
     except:
+        full_host = ""
+
+    # 1. High-Penalty Deception (The User's Case)
+    if '@' in url:
+        signals.append("URL contains '@' symbol (highly deceptive redirection)")
+        score += 0.5 # Immediate jump to critical/high risk
+        
+    if re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url):
+        signals.append("URL uses raw IP address instead of domain name")
+        score += 0.4
+
+    # 2. Feature-based scoring
+    if len(url) > 100:
+        signals.append("Excessively long URL (Often used for obfuscation)")
+        score += 0.2
+        
+    # 3. Subdomain Padding Detection
+    if subdomain.count('.') > 2:
+        signals.append("Excessive subdomains detected (Subdomain padding attack)")
+        score += 0.3
+    
+    if hostname and (hostname in ['google', 'microsoft', 'apple', 'amazon', 'netflix', 'paypal']):
+        # If the domain IS the real one, we should be careful, 
+        # but if it's in the subdomain part of another domain, it's a huge red flag
         pass
+    elif any(brand in url_lower for brand in ['google', 'microsoft', 'apple', 'amazon', 'paypal', 'outlook', 'office365']):
+        signals.append("Well-known brand name used in suspicious context")
+        score += 0.4
+
+    # 4. Keyword-based risk (Credential Harvesting)
+    phishing_keywords = ['login', 'verify', 'update', 'account', 'secure', 'banking', 'sign-in', 'password', 'credential']
+    if any(k in url_lower for k in phishing_keywords):
+        # Look for keywords in the path/domain if they shouldn't be there
+        signals.append("Phishing-related keywords detected in URL")
+        score += 0.2
+
+    # 5. Entropy calculation for hostname
+    if hostname:
+        try:
+            entropy = -sum(p * math.log2(p) for p in (hostname.count(c) / len(hostname) for c in set(hostname)))
+            if entropy > 3.8:
+                signals.append("High entropy domain name (Algorithmic/Random-like)")
+                score += 0.2
+        except:
+            pass
 
     # TLD risk
-    suspicious_tlds = ['.xyz', '.top', '.club', '.info', '.best', '.icu', '.gq', '.tk']
-    if any(url.lower().endswith(tld) for tld in suspicious_tlds):
-        signals.append(f"Suspicious TLD detected")
+    suspicious_tlds = ['.xyz', '.top', '.club', '.info', '.best', '.icu', '.gq', '.tk', '.shop', '.site']
+    if any(url_lower.endswith(tld) or f"{tld}/" in url_lower for tld in suspicious_tlds):
+        signals.append(f"Suspicious or low-reputation TLD detected")
         score += 0.3
-
-    # Special characters/Obfuscation
-    if '@' in url or '-' in hostname:
-        signals.append("URL contains potentially deceptive characters")
-        score += 0.1
-
-    # 2. Intelligence-based (WHOIS)
-    try:
-        # Note: WHOIS can be slow or blocked in some environments
-        w = whois.whois(hostname)
-        creation_date = w.creation_date
-        if isinstance(creation_date, list):
-            creation_date = creation_date[0]
-            
-        if creation_date:
-            age = (datetime.now() - creation_date).days
-            if age < 30:
-                signals.append("Newly registered domain (less than 30 days old)")
-                score += 0.4
-            elif age < 180:
-                signals.append("Relatively young domain (less than 6 months)")
-                score += 0.2
-    except:
-        signals.append("WHOIS data unavailable or privacy-protected")
-
-    # 3. Short link detection
-    shorteners = ['bit.ly', 't.co', 'tinyurl.com', 'is.gd', 'buff.ly']
-    if any(s in url.lower() for s in shorteners):
-        signals.append("Obfuscated or shortened URL")
-        score += 0.2
-        # Future: Expand URL and analyze target
 
     # Final normalization
     risk_score = min(0.99, score)
-    confidence = "HIGH" if score > 0.7 else "MEDIUM"
+    confidence = "HIGH" if score > 0.6 else "MEDIUM"
     
     return {
         "risk_score": round(risk_score, 2),
         "confidence": confidence,
         "signals": signals if signals else ["No significant URL anomalies detected"],
-        "model_version": "url-heuristic-intelligence-v1"
+        "model_version": "url-heuristic-hardened-v1"
     }
