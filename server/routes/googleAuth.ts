@@ -40,7 +40,8 @@ router.get('/google', (req, res) => {
         access_type: 'offline',
         scope: scopes,
         state: userId,
-        prompt: 'consent' // Forces refresh_token
+        prompt: 'consent', // Forces refresh_token
+        redirect_uri: dynamicRedirectUri
     });
 
     res.redirect(url);
