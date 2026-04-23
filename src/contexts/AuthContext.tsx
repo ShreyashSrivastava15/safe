@@ -13,6 +13,7 @@ interface AuthContextType {
 const MOCK_USER: any = {
     id: '00000000-0000-0000-0000-000000000000',
     email: 'admin@safe-system.ai',
+    email_confirmed_at: new Date().toISOString(),
     user_metadata: { full_name: 'S.A.F.E. Admin' },
     app_metadata: {},
     aud: 'authenticated',
