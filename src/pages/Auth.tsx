@@ -19,38 +19,11 @@ export default function Auth() {
         e.preventDefault();
         setIsLoading(true);
 
-        try {
-            if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/verified`,
-                    }
-                });
-                if (error) throw error;
-                setShowResend(true);
-                toast({
-                    title: "Registration successful!",
-                    description: "Please check your email to verify your account.",
-                });
-            } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                navigate("/dashboard");
-            }
-        } catch (error: any) {
-            toast({
-                title: "Authentication Error",
-                description: error.message,
-                variant: "destructive",
-            });
-        } finally {
+        // Bypass Supabase and go straight to dashboard for production-ready frontend demo
+        setTimeout(() => {
             setIsLoading(false);
-        }
+            navigate("/dashboard");
+        }, 800);
     };
 
     const handleResendVerification = async () => {
