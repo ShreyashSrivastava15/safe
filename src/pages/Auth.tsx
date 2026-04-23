@@ -32,10 +32,9 @@ export default function Auth() {
             const storedValue = localStorage.getItem(`safe_mock_user_${email}`);
             const user = storedValue ? JSON.parse(storedValue) : null;
 
-            const isMasterUser = email === 'shreyashsr2004@gmail.com' && password === 'admin123';
-            const isDemoUser = email === 'admin@safe.ai' && password === 'admin123';
+            const isMasterUser = email === 'shreyashsr2004@gmail.com' && password === 'Prisha1531@';
 
-            if (isMasterUser || isDemoUser || (user && user.password === password)) {
+            if (isMasterUser || (user && user.password === password)) {
                 navigate("/dashboard");
             } else {
                 setIsLoading(false);
