@@ -19,37 +19,33 @@ export default function Auth() {
         e.preventDefault();
         setIsLoading(true);
 
-        // Persistent Mock Auth using localStorage for "Normal" project feel
-        setTimeout(() => {
-            if (isSignUp) {
-                // Simulate saving to DB by using localStorage
-                localStorage.setItem(`safe_mock_user_${email}`, JSON.stringify({ email, password }));
-                
-                setIsLoading(false);
-                setIsSignUp(false); // Toggle to login mode
-                toast({
-                    title: "Registration Successful!",
-                    description: "Your local account has been created. You can now sign in.",
-                });
-            } else {
-                // Retrieve from local 'database'
-                const storedValue = localStorage.getItem(`safe_mock_user_${email}`);
-                const user = storedValue ? JSON.parse(storedValue) : null;
+        // Instant Mock Auth logic
+        if (isSignUp) {
+            localStorage.setItem(`safe_mock_user_${email}`, JSON.stringify({ email, password }));
+            setIsLoading(false);
+            setIsSignUp(false);
+            toast({
+                title: "Registration Successful!",
+                description: "Your local account has been created. You can now sign in.",
+            });
+        } else {
+            const storedValue = localStorage.getItem(`safe_mock_user_${email}`);
+            const user = storedValue ? JSON.parse(storedValue) : null;
 
-                // Success if matched or our default admin123
-                if ((user && user.password === password) || (email === 'admin@safe.ai' && password === 'admin123')) {
-                    setIsLoading(false);
-                    navigate("/dashboard");
-                } else {
-                    setIsLoading(false);
-                    toast({
-                        title: "Authentication Error",
-                        description: "Invalid email or password.",
-                        variant: "destructive",
-                    });
-                }
+            const isMasterUser = email === 'shreyashsr2004@gmail.com' && password === 'admin123';
+            const isDemoUser = email === 'admin@safe.ai' && password === 'admin123';
+
+            if (isMasterUser || isDemoUser || (user && user.password === password)) {
+                navigate("/dashboard");
+            } else {
+                setIsLoading(false);
+                toast({
+                    title: "Authentication Error",
+                    description: "Invalid email or password.",
+                    variant: "destructive",
+                });
             }
-        }, 1000);
+        }
     };
 
     const handleResendVerification = async () => {
