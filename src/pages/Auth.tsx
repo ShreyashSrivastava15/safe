@@ -19,20 +19,37 @@ export default function Auth() {
         e.preventDefault();
         setIsLoading(true);
 
-        // Simple mock validation for "Normal" project feel
+        // Persistent Mock Auth using localStorage for "Normal" project feel
         setTimeout(() => {
-            if (password !== "admin123") {
+            if (isSignUp) {
+                // Simulate saving to DB by using localStorage
+                localStorage.setItem(`safe_mock_user_${email}`, JSON.stringify({ email, password }));
+                
                 setIsLoading(false);
+                setIsSignUp(false); // Toggle to login mode
                 toast({
-                    title: "Authentication Error",
-                    description: "Invalid email or password.",
-                    variant: "destructive",
+                    title: "Registration Successful!",
+                    description: "Your local account has been created. You can now sign in.",
                 });
             } else {
-                setIsLoading(false);
-                navigate("/dashboard");
+                // Retrieve from local 'database'
+                const storedValue = localStorage.getItem(`safe_mock_user_${email}`);
+                const user = storedValue ? JSON.parse(storedValue) : null;
+
+                // Success if matched or our default admin123
+                if ((user && user.password === password) || (email === 'admin@safe.ai' && password === 'admin123')) {
+                    setIsLoading(false);
+                    navigate("/dashboard");
+                } else {
+                    setIsLoading(false);
+                    toast({
+                        title: "Authentication Error",
+                        description: "Invalid email or password.",
+                        variant: "destructive",
+                    });
+                }
             }
-        }, 800);
+        }, 1000);
     };
 
     const handleResendVerification = async () => {
