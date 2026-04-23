@@ -22,27 +22,25 @@ export const checkConnectionStatus = async (userId: string): Promise<boolean> =>
 };
 
 export const fetchRecentEmails = async (): Promise<GmailMessage[]> => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-
-    if (error || !session) {
-        throw new Error("You are not authenticated.");
-    }
-
-    const response = await fetch(`${API_BASE_URL}/gmail/fetch`, {
-        method: 'GET',
-        headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            Accept: 'application/json',
-        },
+    // Instant Mock Gmail fetch for presentation
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve([
+                {
+                    id: '1',
+                    snippet: 'Your account security alert: urgent action required...',
+                    body: 'We noticed a login from an unknown device. If this was not you, please click here: http://secure-safe-verify.com',
+                    subject: 'Security Alert: Login from Unknown Device',
+                    sender: 'security@banking-support.ms'
+                },
+                {
+                    id: '2',
+                    snippet: 'Invoice #8849 is ready for payment...',
+                    body: 'Your monthly statement is ready. Download it here: http://bit.ly/invoice-downdload',
+                    subject: 'Invoice Ready',
+                    sender: 'billing@utility-service.org'
+                }
+            ]);
+        }, 1500);
     });
-
-    if (!response.ok) {
-        const errData = await response.json();
-        if (response.status === 401) {
-            throw new Error("Google access token not found. Please connect your Google account.");
-        }
-        throw new Error(errData.error || "Failed to fetch messages from Gmail.");
-    }
-
-    return response.json();
 };

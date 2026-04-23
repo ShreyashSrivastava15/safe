@@ -27,49 +27,47 @@ export interface AnalysisResponse {
 }
 
 export const analyzeRisk = async (data: AnalysisRequest): Promise<AnalysisResponse> => {
-    // Graceful fallback for mock mode
-    let token = "mock_token";
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token || "mock_token";
-    } catch (e) {
-        console.warn("Supabase session fetch failed, using mock token");
-    }
+    // Instant Mock Analysis for Presentations
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const hasLink = data.message?.includes('http') || data.url;
+            const hasUrgency = data.message?.toLowerCase().includes('urgent') || data.message?.toLowerCase().includes('immediately');
+            
+            let final_score = 0.15; // Safe default
+            if (hasLink) final_score += 0.45;
+            if (hasUrgency) final_score += 0.35;
+            if (final_score > 0.95) final_score = 0.98;
 
-    const response = await fetch(`${API_URL}/analyze`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data),
+            const risk_level = final_score > 0.7 ? 'FRAUD' : final_score > 0.4 ? 'SUSPICIOUS' : 'SAFE';
+            const verdict = final_score > 0.7 ? 'FRAUDULENT' : final_score > 0.4 ? 'SUSPICIOUS' : 'SAFE';
+
+            resolve({
+                scores: {
+                    nlp: final_score * 0.8,
+                    url: hasLink ? 0.92 : 0.1,
+                    transaction: data.transaction ? 0.4 : undefined
+                },
+                signals: [
+                    risk_level === 'FRAUD' ? "[Comm] High pressure manipulative language detected" : "[Comm] Message structure appears normal",
+                    hasLink ? "[URL] Phishing pattern detected in link structure" : "[URL] No malicious links found",
+                    hasUrgency ? "[Comm] Artificial urgency detected (Psychological trigger)" : "[Comm] Neutral tone detected"
+                ],
+                final_score,
+                risk_level,
+                verdict,
+                explanation: risk_level === 'FRAUD' 
+                    ? "S.A.F.E. Engine has identified high-risk indicators: manipulative tone combined with a suspicious external link. Highly likely to be a phishing attempt."
+                    : "Analysis complete. The input appears to be safe with no significant fraud indicators detected."
+            });
+        }, 1200); // Slight delay for realistic feel
     });
-
-    if (!response.ok) {
-        if (response.status === 401) throw new Error('Unauthorized or unverified user.');
-        throw new Error('Analysis failed');
-    }
-
-    return response.json();
 };
 
 export const getRecentLogs = async () => {
-    let userId = "00000000-0000-0000-0000-000000000000";
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        userId = session?.user?.id || userId;
-    } catch (e) {}
-
-    const { data, error } = await (supabase as any)
-        .from('analysis_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-    if (error) {
-        console.warn("Supabase fetch failed, returning empty logs for mock mode");
-        return [];
-    }
-    return data;
+    // Return static mock logs for presentation
+    return [
+        { id: 1, verdict: 'FRAUDULENT', risk_level: 'FRAUD', created_at: new Date().toISOString(), message: 'Urgent: Your account is locked. Click here.' },
+        { id: 2, verdict: 'SAFE', risk_level: 'SAFE', created_at: new Date(Date.now() - 3600000).toISOString(), message: 'Hello, how are you today?' },
+        { id: 3, verdict: 'SUSPICIOUS', risk_level: 'SUSPICIOUS', created_at: new Date(Date.now() - 7200000).toISOString(), url: 'http://bit.ly/claim-prize-99' }
+    ];
 };
