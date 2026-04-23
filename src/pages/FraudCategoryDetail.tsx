@@ -41,7 +41,8 @@ const FraudCategoryDetail = () => {
                                 category.id === 'message-based' ? '/analyze/message' :
                                     category.id === 'phishing-urls' ? '/analyze/url' :
                                         category.id === 'e-commerce' ? '/analyze/ecommerce' :
-                                            '/analyze/email' // Default
+                                            category.id === 'financial-transactions' ? '/analyze/transaction' :
+                                                '/analyze/email' // Default
                         }>
                             <Play className="h-4 w-4 mr-2 fill-current" />
                             Run S.A.F.E. Analysis

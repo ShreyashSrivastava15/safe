@@ -3,7 +3,7 @@ import { fraudCategories } from "@/data/fraudCategories";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowRight, Zap, Target, Search, Mail, MessageSquare, Link2, ShoppingCart } from "lucide-react";
+import { Shield, ArrowRight, Zap, Target, Search, Mail, MessageSquare, Link2, ShoppingCart, CreditCard } from "lucide-react";
 
 export const FraudCoverage = () => {
     const getIcon = (iconName: string | undefined) => {
@@ -12,6 +12,7 @@ export const FraudCoverage = () => {
             case 'MessageSquare': return <MessageSquare className="h-6 w-6" />;
             case 'Link2': return <Link2 className="h-6 w-6" />;
             case 'ShoppingCart': return <ShoppingCart className="h-6 w-6" />;
+            case 'CreditCard': return <CreditCard className="h-6 w-6" />;
             default: return <Shield className="h-6 w-6" />;
         }
     };
@@ -22,6 +23,7 @@ export const FraudCoverage = () => {
             case 'message-based': return 'from-green-500/20 text-green-400 border-green-500/30';
             case 'phishing-urls': return 'from-yellow-500/20 text-yellow-400 border-yellow-500/30';
             case 'e-commerce': return 'from-purple-500/20 text-purple-400 border-purple-500/30';
+            case 'financial-transactions': return 'from-red-500/20 text-red-400 border-red-500/30';
             default: return 'from-primary/20 text-primary border-primary/30';
         }
     };

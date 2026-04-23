@@ -39,16 +39,16 @@ async def analyze_url(url: str):
         signals.append("Excessive subdomains detected (Subdomain padding attack)")
         score += 0.3
     
-    if hostname and (hostname in ['google', 'microsoft', 'apple', 'amazon', 'netflix', 'paypal']):
+    if hostname and (hostname in ['google', 'microsoft', 'apple', 'amazon', 'netflix', 'paypal', 'nike', 'adidas', 'ebay', 'walmart', 'binance', 'coinbase']):
         # If the domain IS the real one, we should be careful, 
         # but if it's in the subdomain part of another domain, it's a huge red flag
         pass
-    elif any(brand in url_lower for brand in ['google', 'microsoft', 'apple', 'amazon', 'paypal', 'outlook', 'office365']):
+    elif any(brand in url_lower for brand in ['google', 'microsoft', 'apple', 'amazon', 'paypal', 'outlook', 'office365', 'nike', 'adidas', 'ebay', 'walmart', 'macbook', 'iphone', 'ps5', 'xbox', 'jordans']):
         signals.append("Well-known brand name used in suspicious context")
-        score += 0.4
+        score += 0.50
 
-    # 4. Keyword-based risk (Credential Harvesting)
-    phishing_keywords = ['login', 'verify', 'update', 'account', 'secure', 'banking', 'sign-in', 'password', 'credential']
+    # 4. Keyword-based risk (Credential Harvesting & E-commerce Bait)
+    phishing_keywords = ['login', 'verify', 'update', 'account', 'secure', 'banking', 'sign-in', 'password', 'credential', 'cheap', 'discount', 'deal', 'offer', 'sale', 'free', 'gift', 'prize', 'claim']
     if any(k in url_lower for k in phishing_keywords):
         # Look for keywords in the path/domain if they shouldn't be there
         signals.append("Phishing-related keywords detected in URL")
@@ -65,10 +65,10 @@ async def analyze_url(url: str):
             pass
 
     # TLD risk
-    suspicious_tlds = ['.xyz', '.top', '.club', '.info', '.best', '.icu', '.gq', '.tk', '.shop', '.site']
+    suspicious_tlds = ['.xyz', '.top', '.club', '.info', '.best', '.icu', '.gq', '.tk', '.shop', '.site', '.monster', '.live']
     if any(url_lower.endswith(tld) or f"{tld}/" in url_lower for tld in suspicious_tlds):
         signals.append(f"Suspicious or low-reputation TLD detected")
-        score += 0.3
+        score += 0.45
 
     # Final normalization
     risk_score = min(0.99, score)

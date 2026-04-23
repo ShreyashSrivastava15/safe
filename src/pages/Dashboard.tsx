@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ShieldCheck, AlertTriangle, Activity, Loader2, Mail, Link as LinkIcon, CreditCard, ShoppingCart } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Activity, Loader2, Mail, Link as LinkIcon, CreditCard, ShoppingCart, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,7 +83,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground">Welcome back, {user?.email}. Supervise your threat detection network.</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Link to="/analyze/email">
                     <Card className="hover:shadow-md transition-shadow cursor-pointer border-blue-500/20 bg-blue-500/5">
                         <CardHeader className="pb-2">
@@ -99,6 +99,15 @@ const Dashboard = () => {
                             <LinkIcon className="h-8 w-8 text-green-500 mb-2" />
                             <CardTitle>URL Intelligence</CardTitle>
                             <CardDescription>Detect malicious links</CardDescription>
+                        </CardHeader>
+                    </Card>
+                </Link>
+                <Link to="/analyze/message">
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer border-orange-500/20 bg-orange-500/5">
+                        <CardHeader className="pb-2">
+                            <MessageSquare className="h-8 w-8 text-orange-500 mb-2" />
+                            <CardTitle>SMS & Messaging</CardTitle>
+                            <CardDescription>Verify smishing threats</CardDescription>
                         </CardHeader>
                     </Card>
                 </Link>

@@ -94,5 +94,26 @@ export const fraudCategories: FraudCategory[] = [
         ],
         detectionType: "Hybrid",
         icon: "ShoppingCart"
+    },
+    {
+        id: "financial-transactions",
+        name: "Financial Transactions & Anomalies",
+        description: "Sophisticated monitoring of transaction patterns, geographic shifts, and behavioral anomalies.",
+        supportedTypes: [
+            "Card Not Present Fraud",
+            "High-Velocity Anomaly",
+            "Geographic Location Shift",
+            "Sudden Balance Depletion",
+            "Suspicious Vendor Payments"
+        ],
+        detectionApproach: "Isolation Forest ML Model",
+        exampleSignals: [
+            "Unusual transaction amount",
+            "Rapid succession of charges",
+            "Device/IP fingerprint change",
+            "International geolocation jump"
+        ],
+        detectionType: "Pattern-based",
+        icon: "CreditCard"
     }
 ];
