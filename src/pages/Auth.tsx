@@ -19,10 +19,19 @@ export default function Auth() {
         e.preventDefault();
         setIsLoading(true);
 
-        // Bypass Supabase and go straight to dashboard for production-ready frontend demo
+        // Simple mock validation for "Normal" project feel
         setTimeout(() => {
-            setIsLoading(false);
-            navigate("/dashboard");
+            if (password !== "admin123") {
+                setIsLoading(false);
+                toast({
+                    title: "Authentication Error",
+                    description: "Invalid email or password.",
+                    variant: "destructive",
+                });
+            } else {
+                setIsLoading(false);
+                navigate("/dashboard");
+            }
         }, 800);
     };
 
