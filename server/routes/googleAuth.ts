@@ -1,24 +1,34 @@
 import express from 'express';
 import { google } from 'googleapis';
 import { prisma } from '../utils/prisma';
-import { supabase } from '../utils/supabaseClient';
+import { authenticateJWT, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-const getBaseOAuth2Client = () => {
+const getOAuth2Client = (redirectUri?: string) => {
     return new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
+        redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback'
     );
 };
 
-// GET /auth/google
-router.get('/google', (req, res) => {
-    const userId = req.query.userId as string;
+// GET /auth/google (Initial Redirect)
+router.get('/google', async (req, res) => {
+    const { userId } = req.query;
+    console.log(`[GoogleAuth] Initializing OAuth for userId: ${userId}`);
 
     if (!userId) {
-        return res.status(400).send('User ID is required');
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Verify user exists locally
+    const user = await prisma.user.findUnique({
+        where: { id: userId as string }
+    });
+
+    if (!user) {
+        return res.status(401).json({ error: 'Unauthorized: User not found' });
     }
 
     const scopes = [
@@ -26,22 +36,13 @@ router.get('/google', (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email'
     ];
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers.host;
-    const dynamicRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/auth/google/callback`;
-
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        dynamicRedirectUri
-    );
+    const oauth2Client = getOAuth2Client();
 
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
-        state: userId,
-        prompt: 'consent', // Forces refresh_token
-        redirect_uri: dynamicRedirectUri
+        state: userId, // Pass local userId in state
+        prompt: 'consent'
     });
 
     res.redirect(url);
@@ -56,18 +57,11 @@ router.get('/google/callback', async (req, res) => {
     }
 
     try {
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.headers.host;
-        const dynamicRedirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/auth/google/callback`;
-
-        const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            dynamicRedirectUri
-        );
+        const oauth2Client = getOAuth2Client();
+        console.log(`[GoogleAuth] Exchanging code. Client ID: ${process.env.GOOGLE_CLIENT_ID}`);
         const { tokens } = await oauth2Client.getToken(code as string);
 
-        // Save tokens to database
+        // Save tokens to local PostgreSQL database
         await prisma.googleToken.upsert({
             where: { user_id: userId as string },
             update: {
@@ -83,19 +77,19 @@ router.get('/google/callback', async (req, res) => {
             }
         });
 
-        // Redirect back to frontend
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-        res.redirect(`${frontendUrl}/analyze/email?connected=true`);
+        // Redirect back to frontend dashboard
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+        res.redirect(`${frontendUrl}/dashboard?connected=true`);
 
-    } catch (error) {
-        console.error('Error exchanging code for tokens:', error);
-        res.status(500).send('Authentication failed');
+    } catch (error: any) {
+        console.error('Error exchanging code for tokens:', error.response?.data || error.message || error);
+        res.status(500).send(`Authentication failed: ${error.message || 'Check server logs'}`);
     }
 });
 
-// GET /auth/status/:userId
-router.get('/status/:userId', async (req, res) => {
-    const { userId } = req.params;
+// GET /auth/status (Check if user has connected Google)
+router.get('/status', authenticateJWT, async (req: AuthRequest, res) => {
+    const userId = req.user?.userId;
 
     try {
         const token = await prisma.googleToken.findUnique({

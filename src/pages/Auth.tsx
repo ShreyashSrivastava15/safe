@@ -1,70 +1,65 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shield } from "lucide-react";
+import { Shield, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Auth() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isSignUp, setIsSignUp] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [showResend, setShowResend] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
+    const { signIn, signUp } = useAuth();
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        // Instant Mock Auth logic
-        if (isSignUp) {
-            localStorage.setItem(`safe_mock_user_${email}`, JSON.stringify({ email, password }));
-            setIsLoading(false);
-            setIsSignUp(false);
-            toast({
-                title: "Registration Successful!",
-                description: "Your local account has been created. You can now sign in.",
+        const endpoint = isSignUp ? '/auth/register' : '/auth/login';
+        const fullUrl = `${API_URL}${endpoint}`;
+        
+        console.log(`Attempting auth at: ${fullUrl}`);
+
+        try {
+            const response = await fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
             });
-        } else {
-            const storedValue = localStorage.getItem(`safe_mock_user_${email}`);
-            const user = storedValue ? JSON.parse(storedValue) : null;
 
-            const isMasterUser = email === 'shreyashsr2004@gmail.com' && password === 'Prisha1531@';
+            const data = await response.json();
 
-            if (isMasterUser || (user && user.password === password)) {
-                navigate("/dashboard");
-            } else {
-                setIsLoading(false);
+            if (!response.ok) {
+                throw new Error(data.error || 'Authentication failed');
+            }
+
+            if (isSignUp) {
+                signUp(data.token, data.user);
                 toast({
-                    title: "Authentication Error",
-                    description: "Invalid email or password.",
-                    variant: "destructive",
+                    title: "Registration Successful!",
+                    description: "Your account has been created and you are now signed in.",
+                });
+            } else {
+                signIn(data.token, data.user);
+                toast({
+                    title: "Welcome Back!",
+                    description: "Successfully signed in.",
                 });
             }
-        }
-    };
 
-    const handleResendVerification = async () => {
-        setIsLoading(true);
-        try {
-            const { error } = await supabase.auth.resend({
-                type: 'signup',
-                email: email,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/verified`,
-                }
-            });
-            if (error) throw error;
-            toast({
-                title: "Email Sent",
-                description: "Verification link has been resent to your email.",
-            });
+            navigate("/dashboard");
         } catch (error: any) {
             toast({
-                title: "Error",
+                title: "Authentication Error",
                 description: error.message,
                 variant: "destructive",
             });
@@ -72,7 +67,6 @@ export default function Auth() {
             setIsLoading(false);
         }
     };
-
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -88,76 +82,59 @@ export default function Auth() {
                 </div>
 
                 <div className="mt-8 space-y-6">
-                    {!showResend ? (
-                        <>
-
-                            <form className="space-y-6" onSubmit={handleAuth}>
-                                <div className="space-y-4">
-                                    <Input
-                                        type="email"
-                                        placeholder="Email address"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
-                                    <Input
-                                        type="password"
-                                        placeholder="Password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                        minLength={6}
-                                    />
-                                </div>
-
-                                <Button type="submit" className="w-full" disabled={isLoading}>
-                                    {isLoading
-                                        ? "Processing..."
-                                        : isSignUp
-                                            ? "Register"
-                                            : "Sign In"}
-                                </Button>
-                            </form>
-                        </>
-                    ) : (
-                        <div className="space-y-4 text-center animate-fade-in">
-                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
-                                <p className="text-sm text-foreground">
-                                    A verification link was sent to <span className="font-bold">{email}</span>. Please click the link in your inbox.
-                                </p>
+                    <form className="space-y-6" onSubmit={handleAuth}>
+                        <div className="space-y-4">
+                            <Input
+                                type="email"
+                                placeholder="Email address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            <div className="relative">
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    minLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <Eye className="h-4 w-4" />
+                                    )}
+                                </button>
                             </div>
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={handleResendVerification}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? "Resending..." : "Resend Verification Email"}
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                className="w-full"
-                                onClick={() => setShowResend(false)}
-                            >
-                                Back to Sign In
-                            </Button>
                         </div>
-                    )}
+
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading
+                                ? "Processing..."
+                                : isSignUp
+                                    ? "Register"
+                                    : "Sign In"}
+                        </Button>
+                    </form>
                 </div>
 
-                {!showResend && (
-                    <div className="text-center mt-4">
-                        <button
-                            type="button"
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-sm text-primary hover:underline"
-                        >
-                            {isSignUp
-                                ? "Already have an account? Sign in"
-                                : "Need an account? Register"}
-                        </button>
-                    </div>
-                )}
+                <div className="text-center mt-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsSignUp(!isSignUp)}
+                        className="text-sm text-primary hover:underline"
+                    >
+                        {isSignUp
+                            ? "Already have an account? Sign in"
+                            : "Need an account? Register"}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -3,12 +3,21 @@ import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+
+// Routes
+import analyzeRoutes from './routes/analyze';
+import adminRoutes from './routes/admin';
+import googleAuthRoutes from './routes/googleAuth';
+import gmailRoutes from './routes/gmail';
+import authRoutes from './routes/auth';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Using 3001 to avoid any silent conflicts with port 3000
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(helmet());
@@ -16,41 +25,52 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Rate limiting
-import rateLimit from 'express-rate-limit';
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
-// Routes
-import analyzeRoutes from './routes/analyze';
-import adminRoutes from './routes/admin';
-import googleAuthRoutes from './routes/googleAuth';
-import gmailRoutes from './routes/gmail';
-
+// Register Routes
 app.use('/api/v1', analyzeRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/auth', googleAuthRoutes);
 app.use('/api/v1/gmail', gmailRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), environment: process.env.NODE_ENV || 'development' });
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Centralized Error Handling Middleware
+// Centralized Error Handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(`[Error] ${req.method} ${req.url}:`, err);
-    const status = err.status || 500;
-    res.status(status).json({
-        error: err.message || 'Internal Server Error',
-        status: status,
-        timestamp: new Date().toISOString()
-    });
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 SERVER STARTED ON PORT: ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// DEBUG: Catch unexpected exits
+process.on('exit', (code) => {
+    console.log(`⚠️ PROCESS EXITING WITH CODE: ${code}`);
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 Received SIGINT (Ctrl+C). Shutting down...');
+    server.close(() => process.exit(0));
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('💥 UNCAUGHT EXCEPTION:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('💥 UNHANDLED REJECTION at:', promise, 'reason:', reason);
+    process.exit(1);
 });

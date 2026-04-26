@@ -1,8 +1,8 @@
 import express from 'express';
 import { analyzeRisk } from '../services/riskEngine';
-import { supabase } from '../utils/supabaseClient';
 import { prisma } from '../utils/prisma';
 import { z } from 'zod';
+import { authenticateJWT, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -14,41 +14,21 @@ const analyzeSchema = z.object({
         amount: z.number().optional(),
         country: z.string().optional(),
         timestamp: z.string().optional(),
-        velocity: z.number().optional(),
+        velocity: z.number().int().positive().optional(),
         geo_shift: z.boolean().optional(),
         device_change: z.boolean().optional(),
     }).optional(),
-    fraud_type: z.enum(['email', 'url', 'transaction', 'ecommerce']),
+    fraud_type: z.enum(['email', 'url', 'transaction', 'ecommerce', 'message']),
 }).refine(data => data.message || data.url || data.transaction, {
     message: "At least one input (message, url, transaction) is required",
 });
 
-router.post('/analyze', async (req, res) => {
+router.post('/analyze', authenticateJWT, async (req: AuthRequest, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-        }
-        const token = authHeader.split(' ')[1];
+        const userId = req.user?.userId;
 
-        let user: any;
-        if (token === 'mock_token') {
-            // Bypass for Mock Mode / DNS issues
-            user = { 
-                id: '00000000-0000-0000-0000-000000000000', 
-                email: 'admin@safe-system.ai', 
-                email_confirmed_at: new Date().toISOString() 
-            };
-        } else {
-            const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
-            if (authError || !supabaseUser) {
-                return res.status(401).json({ error: 'Unauthorized', details: authError });
-            }
-            user = supabaseUser;
-            
-            if (!user.email_confirmed_at) {
-                return res.status(401).json({ error: 'Email must be verified to perform analysis.' });
-            }
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
         // Validate input
@@ -74,17 +54,20 @@ router.post('/analyze', async (req, res) => {
         try {
             await prisma.analysisLog.create({
                 data: {
-                    user_id: user.id,
+                    user_id: userId,
                     fraud_type: fraud_type,
                     message: message || null,
                     url: url || null,
                     transaction_json: transaction || ({} as any),
                     scores_json: result.scores as any,
                     signals: result.signals as any,
+                    findings_json: result.findings as any,
                     final_score: result.final_score,
                     risk_level: result.risk_level,
                     verdict: result.verdict,
-                    explanation: result.explanation
+                    explanation: result.explanation,
+                    confidence: result.confidence,
+                    recommendation: result.recommendation
                 }
             });
         } catch (dbError) {
@@ -96,6 +79,30 @@ router.post('/analyze', async (req, res) => {
     } catch (error) {
         console.error('Analysis error:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// GET /api/v1/analyze/history
+// Returns the analysis history for the authenticated user
+router.get('/history', authenticateJWT, async (req: AuthRequest, res) => {
+    try {
+        const userId = req.user?.userId;
+        console.log(`[History] Fetching logs for userId: ${userId}`);
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const logs = await prisma.analysisLog.findMany({
+            where: { user_id: userId },
+            orderBy: { created_at: 'desc' },
+            take: 50
+        });
+
+        res.json(logs);
+    } catch (error) {
+        console.error('History fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch history' });
     }
 });
 

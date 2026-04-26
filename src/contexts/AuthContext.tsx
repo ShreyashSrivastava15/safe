@@ -1,81 +1,101 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+
+interface User {
+    id: string;
+    email: string;
+    full_name?: string;
+    avatar_url?: string;
+}
 
 interface AuthContextType {
-    session: Session | null;
     user: User | null;
-    signOut: () => Promise<void>;
+    token: string | null;
+    signIn: (token: string, user: User) => void;
+    signUp: (token: string, user: User) => void;
+    signOut: () => void;
     isLoading: boolean;
     isAdmin: boolean;
 }
 
-const MOCK_USER: any = {
-    id: '00000000-0000-0000-0000-000000000000',
-    email: 'admin@safe-system.ai',
-    email_confirmed_at: new Date().toISOString(),
-    user_metadata: { full_name: 'S.A.F.E. Admin' },
-    app_metadata: {},
-    aud: 'authenticated',
-    created_at: new Date().toISOString(),
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MOCK_SESSION: any = {
-    access_token: 'mock_token',
-    user: MOCK_USER,
-    expires_at: 9999999999,
-};
-
-const AuthContext = createContext<AuthContextType>({ 
-    session: MOCK_SESSION, 
-    user: MOCK_USER, 
-    signOut: async () => { }, 
-    isLoading: false, 
-    isAdmin: true 
-});
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    // Default to mock state to ensure "normal" operation without Supabase DNS issues
-    const [session, setSession] = useState<Session | null>(MOCK_SESSION);
-    const [user, setUser] = useState<User | null>(MOCK_USER);
-    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(localStorage.getItem('safe_auth_token'));
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // We still try to listen, but we start with a working mock state
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                setSession(session);
-                setUser(session.user);
+        const validateToken = async () => {
+            if (!token) {
+                setIsLoading(false);
+                return;
             }
-        }).finally(() => {
-            setIsLoading(false);
-        });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) {
-                setSession(session);
-                setUser(session.user);
+            try {
+                const response = await fetch(`${API_URL}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    setUser(userData);
+                } else {
+                    // Token invalid or expired
+                    localStorage.removeItem('safe_auth_token');
+                    setToken(null);
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error('Auth validation failed:', error);
+            } finally {
+                setIsLoading(false);
             }
-        });
+        };
 
-        return () => subscription.unsubscribe();
-    }, []);
+        validateToken();
+    }, [token]);
 
-    const signOut = async () => {
-        setSession(null);
+    const signIn = (newToken: string, userData: User) => {
+        localStorage.setItem('safe_auth_token', newToken);
+        setToken(newToken);
+        setUser(userData);
+    };
+
+    const signUp = (newToken: string, userData: User) => {
+        localStorage.setItem('safe_auth_token', newToken);
+        setToken(newToken);
+        setUser(userData);
+    };
+
+    const signOut = () => {
+        localStorage.removeItem('safe_auth_token');
+        setToken(null);
         setUser(null);
-        try {
-            await supabase.auth.signOut();
-        } catch (e) {
-            console.warn("Supabase signOut failed, handled gracefully in mock mode");
-        }
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, signOut, isLoading, isAdmin: true }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            token, 
+            signIn, 
+            signUp, 
+            signOut, 
+            isLoading, 
+            isAdmin: user?.email === 'shreyashsr2004@gmail.com'
+        }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

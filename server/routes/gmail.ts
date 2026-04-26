@@ -1,7 +1,8 @@
 import express from 'express';
 import { google } from 'googleapis';
 import { prisma } from '../utils/prisma';
-import { supabase } from '../utils/supabaseClient';
+import { authenticateJWT, AuthRequest } from '../middleware/auth';
+import { analyzeRisk } from '../services/riskEngine';
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ const getOAuthClient = async (userId: string) => {
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
+        process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback'
     );
 
     oauth2Client.setCredentials({
@@ -26,7 +27,7 @@ const getOAuthClient = async (userId: string) => {
         expiry_date: googleToken.expiry_date ? Number(googleToken.expiry_date) : undefined
     });
 
-    // Handle token refresh
+    // Handle token refresh automatically
     oauth2Client.on('tokens', async (tokens) => {
         if (tokens.access_token) {
             await prisma.googleToken.update({
@@ -44,30 +45,26 @@ const getOAuthClient = async (userId: string) => {
 };
 
 // GET /api/v1/gmail/fetch
-router.get('/fetch', async (req, res) => {
+// Fetches unread emails and automatically runs fraud analysis on them
+router.get('/fetch', authenticateJWT, async (req: AuthRequest, res) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-
-        if (error || !user) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const oauth2Client = await getOAuthClient(user.id);
+        const oauth2Client = await getOAuthClient(userId);
         const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
         const listRes = await gmail.users.messages.list({
             userId: 'me',
             q: 'is:unread',
-            maxResults: 5
+            maxResults: 50
         });
 
         const messages = listRes.data.messages || [];
-        const detailedMessages = [];
+        const analysisResults = [];
 
         for (const msg of messages) {
             const detailRes = await gmail.users.messages.get({
@@ -80,24 +77,54 @@ router.get('/fetch', async (req, res) => {
             const headers = data.payload?.headers || [];
             const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
             const sender = headers.find(h => h.name === 'From')?.value || 'Unknown';
+            const body = data.snippet || '';
 
-            // Basic body extraction
-            let body = data.snippet || '';
+            const authResults = headers.find(h => h.name === 'Authentication-Results')?.value || '';
 
-            detailedMessages.push({
+            // Run Fraud Analysis
+            const result = await analyzeRisk({
+                message: `Sender: ${sender}\nSubject: ${subject}\n\n${body}`,
+                url: '',
+                transaction: null,
+                fraud_type: 'email',
+                metadata: { auth_results: authResults }
+            });
+
+            // Log to database
+            const log = await prisma.analysisLog.create({
+                data: {
+                    user_id: userId,
+                    fraud_type: 'email',
+                    message: `Sender: ${sender}\nSubject: ${subject}\n\n${body}`,
+                    scores_json: result.scores as any,
+                    signals: result.signals as any,
+                    final_score: result.final_score,
+                    risk_level: result.risk_level,
+                    verdict: result.verdict,
+                    explanation: result.explanation
+                }
+            });
+
+            analysisResults.push({
                 id: data.id,
                 subject,
                 sender,
-                body,
-                snippet: data.snippet
+                snippet: body,
+                risk_level: result.risk_level,
+                final_score: result.final_score,
+                verdict: result.verdict,
+                log_id: log.id
             });
         }
 
-        res.json(detailedMessages);
+        res.json({
+            count: analysisResults.length,
+            results: analysisResults
+        });
 
     } catch (error: any) {
         console.error('Gmail fetch error:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch emails' });
+        res.status(500).json({ error: error.message || 'Failed to fetch and analyze emails' });
     }
 });
 
