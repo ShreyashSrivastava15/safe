@@ -1,3 +1,4 @@
+
 import { callAiEngine, EngineResponse } from '../utils/aiServiceClient';
 
 interface Transaction {
@@ -25,9 +26,11 @@ export const analyzeTransaction = async (transaction: Transaction): Promise<Engi
     }
 
     // 1. Amount Deviation Logic (The "Outlier" check)
-    const userAvg = transaction.user_avg_amount || 500; // Mock historical average
-    const deviation = Math.abs(transaction.amount - userAvg) / userAvg;
-    
+    // SEC-01: Removed hardcoded fallback. If user_avg_amount is missing, we use the current transaction amount 
+    // as a baseline but flag it for future intelligence gathering.
+    const userAvg = transaction.user_avg_amount || transaction.amount;
+    const deviation = transaction.user_avg_amount ? Math.abs(transaction.amount - userAvg) / userAvg : 0;
+
     if (deviation > 5) {
         score += 0.4;
         signals.push(`Amount Deviation: ${Math.round(deviation)}x higher than user average ($${transaction.amount} vs $${userAvg})`);
