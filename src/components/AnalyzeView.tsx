@@ -398,23 +398,23 @@ Generated at: ${new Date().toLocaleString()}
                                 <div className="space-y-8">
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Transaction Amount (USD)</Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Amount to Check ($)</Label>
                                             <Input
                                                 type="number"
                                                 value={amount}
                                                 onChange={(e) => setAmount(e.target.value)}
-                                                placeholder="0.00"
+                                                placeholder="Enter amount"
                                                 className="h-14 border-white/5 bg-black/40 font-mono text-lg font-bold rounded-2xl px-6"
                                                 required
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Origin Node (Country)</Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sent from (Country)</Label>
                                             <Input
                                                 type="text"
                                                 value={country}
                                                 onChange={(e) => setCountry(e.target.value.toUpperCase())}
-                                                placeholder="US, GB, IN..."
+                                                placeholder="e.g. US, IN"
                                                 maxLength={2}
                                                 className="h-14 border-white/5 bg-black/40 font-mono text-lg font-bold rounded-2xl px-6"
                                                 required
@@ -423,7 +423,7 @@ Generated at: ${new Date().toLocaleString()}
                                     </div>
                                     
                                     <div className="space-y-3">
-                                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Transaction Velocity (Last 5m)</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Recent Activity Speed</Label>
                                         <div className="grid grid-cols-4 gap-2">
                                             {[1, 2, 5, 10].map((v) => (
                                                 <button
@@ -442,7 +442,7 @@ Generated at: ${new Date().toLocaleString()}
                                         <div className="flex items-center justify-between p-5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group" onClick={() => setIsDeviceChange(!isDeviceChange)}>
                                             <div className="flex items-center gap-3">
                                                 <RefreshCw className={`h-4 w-4 transition-all ${isDeviceChange ? 'text-primary rotate-180' : 'text-muted-foreground opacity-50'}`} />
-                                                <Label className="text-sm font-bold cursor-pointer">Device Fingerprint Mismatch?</Label>
+                                                <Label className="text-sm font-bold cursor-pointer">Is this a New/Unknown Device?</Label>
                                             </div>
                                             <div className={`h-6 w-10 rounded-full p-1 transition-all ${isDeviceChange ? 'bg-primary' : 'bg-white/10'}`}>
                                                 <div className={`h-4 w-4 rounded-full bg-white transition-all ${isDeviceChange ? 'translate-x-4' : ''}`} />
@@ -451,7 +451,7 @@ Generated at: ${new Date().toLocaleString()}
                                         <div className="flex items-center justify-between p-5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group" onClick={() => setIsGeoShift(!isGeoShift)}>
                                             <div className="flex items-center gap-3">
                                                 <AlertCircle className={`h-4 w-4 transition-all ${isGeoShift ? 'text-primary animate-pulse' : 'text-muted-foreground opacity-50'}`} />
-                                                <Label className="text-sm font-bold cursor-pointer">Impossible Travel Anomaly?</Label>
+                                                <Label className="text-sm font-bold cursor-pointer">Is the Location Physically Possible?</Label>
                                             </div>
                                             <div className={`h-6 w-10 rounded-full p-1 transition-all ${isGeoShift ? 'bg-primary' : 'bg-white/10'}`}>
                                                 <div className={`h-4 w-4 rounded-full bg-white transition-all ${isGeoShift ? 'translate-x-4' : ''}`} />
@@ -482,7 +482,7 @@ Generated at: ${new Date().toLocaleString()}
                             className="w-full h-16 gap-3 bg-primary font-black text-xl uppercase tracking-[0.2em] text-primary-foreground hover:bg-primary/90 transition-all shadow-2xl shadow-primary/30 rounded-3xl group"
                         >
                             {isLoading ? <Loader2 className="h-7 w-7 animate-spin" /> : <Shield className="h-7 w-7 transition-transform group-hover:scale-110" />}
-                            Execute Forensic Scan
+                            Verify Safety Now
                         </Button>
                     </form>
                 </div>

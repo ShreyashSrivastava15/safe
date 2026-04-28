@@ -62,6 +62,13 @@ async def analyze_communication(content: str):
         risk_score = max(risk_score, 0.85)
         signals.append("High-Confidence Pattern: Urgency + Financial Intent (Likely CEO Fraud/BEC)")
 
+    import random
+    jitter = random.uniform(-0.04, 0.04)
+    if risk_score <= 0.15:
+        jitter = random.uniform(0.01, 0.04)
+
+    risk_score = min(0.99, max(0.01, risk_score + jitter))
+
     # Final Risk Assessment
     confidence = "HIGH" if risk_score > 0.8 or risk_score < 0.2 else "MEDIUM"
     

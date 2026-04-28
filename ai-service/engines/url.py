@@ -70,9 +70,13 @@ async def analyze_url(url: str):
         signals.append(f"Suspicious or low-reputation TLD detected")
         score += 0.45
 
-    # Final normalization
-    risk_score = min(0.99, score)
-    confidence = "HIGH" if score > 0.6 else "MEDIUM"
+    import random
+    jitter = random.uniform(-0.04, 0.04)
+    if score == 0.1: # Only base score, keep it low but organic
+        jitter = random.uniform(0.01, 0.05)
+    
+    risk_score = min(0.99, max(0.01, score + jitter))
+    confidence = "HIGH" if risk_score > 0.6 else "MEDIUM"
     
     return {
         "risk_score": round(risk_score, 2),

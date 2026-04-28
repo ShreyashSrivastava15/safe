@@ -30,40 +30,40 @@ export default function AnalyzePage() {
         if (category === 'message-based' || category === 'message' || category.includes('sms')) {
             return {
                 type: 'message' as const,
-                title: 'SMS / Messaging Risk',
-                description: 'Verify suspicious text messages and instant communication for mobile fraud.',
+                title: 'Message Safety Guard',
+                description: 'Check if a text message or chat is a scam before you reply.',
                 icon: <MessageSquare className="h-12 w-12 text-green-500" />
             };
         }
         if (category.includes('email') || category.includes('communication')) {
             return {
                 type: 'email' as const,
-                title: 'Email / Communication Risk',
-                description: 'Analyze messages for social engineering, urgency, and manipulative patterns.',
+                title: 'Email Threat Check',
+                description: 'Spot fake emails, social engineering, and urgent pressure tactics.',
                 icon: <Mail className="h-12 w-12 text-blue-500" />
             };
         }
         if (category.includes('url') || category.includes('phishing')) {
             return {
                 type: 'url' as const,
-                title: 'Malicious URL Intelligence',
-                description: 'Analyze domain features, TLD reputation, and homograph threats.',
+                title: 'Website Security Scanner',
+                description: 'Check if a link is safe or a fake website designed to steal your data.',
                 icon: <LinkIcon className="h-12 w-12 text-yellow-500" />
             };
         }
         if (category.includes('transaction')) {
             return {
                 type: 'transaction' as const,
-                title: 'Financial Fraud Analysis',
-                description: 'Evaluate transaction anomalies and geographic shifts.',
+                title: 'Money Safety Guard',
+                description: 'Detect unusual payment patterns and impossible travel shifts.',
                 icon: <CreditCard className="h-12 w-12 text-green-500" />
             };
         }
         if (category.includes('ecommerce') || category.includes('shop')) {
             return {
                 type: 'ecommerce' as const,
-                title: 'E-commerce Scam Scanner',
-                description: 'Verify fake deals and suspicious storefront URLs.',
+                title: 'Fake Deal Detector',
+                description: 'Verify if a shopping deal is real or a fake store scam.',
                 icon: <ShoppingCart className="h-12 w-12 text-purple-500" />
             };
         }
