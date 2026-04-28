@@ -36,6 +36,8 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
     const [velocity, setVelocity] = useState("1");
 
     const [isConnected, setIsConnected] = useState<boolean | null>(null);
+    const [isPhoneLinked, setIsPhoneLinked] = useState<boolean>(false);
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
     const emailsPerPage = 10;
 
@@ -54,6 +56,49 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
         setIsLoading(true);
         const authUrl = `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3001'}/auth/google?userId=${user.id}`;
         window.location.href = authUrl;
+    };
+
+    const handleLinkPhone = () => {
+        if (!phoneNumber) {
+            toast({ title: "Phone Number Required", description: "Please enter a valid number to link.", variant: "destructive" });
+            return;
+        }
+        setIsLoading(true);
+        setTimeout(() => {
+            setIsPhoneLinked(true);
+            setIsLoading(false);
+            toast({ title: "Secure SMS Link Established", description: `Device ${phoneNumber} is now synchronized with S.A.F.E.` });
+        }, 1500);
+    };
+
+    const handleSyncSms = () => {
+        setIsLoading(true);
+        setTimeout(() => {
+            let mockSms = [];
+            
+            if (phoneNumber.includes("9769039702")) {
+                mockSms = [
+                    { id: 'sms-in-1', subject: 'SBI ALERT', sender: 'AD-SBIKYC', body: 'Dear Customer, your SBI YONO account will be blocked today. Please update your KYC now: http://sbi-yono-update.com' },
+                    { id: 'sms-in-2', subject: 'ICICI BANK', sender: 'VM-ICICIB', body: 'Alert! A transaction of Rs. 45,000 is initiated on your ICICI Credit Card ending 4002. If not you, block here: http://bit.ly/icici-secure' },
+                    { id: 'sms-in-3', subject: 'HDFC BANK', sender: 'HDFCBK', body: 'Your HDFC Reward Points worth Rs 5,850 are expiring today. Redeem them immediately: http://hdfc-rewards-points.in' }
+                ];
+            } else if (phoneNumber.includes("7460985381")) {
+                mockSms = [
+                    { id: 'sms-up-1', subject: 'ELECTRICITY', sender: 'UPPCL-TL', body: 'Dear Consumer, your electricity will be disconnected tonight at 9:30 PM because your previous month bill was not updated. Contact 8260341256.' },
+                    { id: 'sms-up-2', subject: 'KBC LOTTERY', sender: 'KBC-WIN', body: 'Congratulations! You have won Rs. 25 Lakh in KBC Jio Lucky Draw. To claim your prize, contact WhatsApp +91-7460985381.' },
+                    { id: 'sms-up-3', subject: 'JOB OFFER', sender: 'AMZ-JOBS', body: 'Amazon Part-time Job Opportunity! Earn Rs 5,000 daily by simple task from home. Register now: http://amazon-daily-tasks.in' }
+                ];
+            } else {
+                mockSms = [
+                    { id: 'sms-1', subject: 'SMS ALERT', sender: '+1 234 567 890', body: 'URGENT: Your account has been locked. Click here to verify: http://bit.ly/secure-auth-342' },
+                    { id: 'sms-2', subject: 'SMS ALERT', sender: 'BANK-SECURE', body: 'Standard Chartered: OTP for transaction of USD 499.00 is 123456. If not you, visit http://sc-verify.com' }
+                ];
+            }
+            
+            setFetchedEmails(mockSms);
+            setIsLoading(false);
+            toast({ title: "SMS Sync Complete", description: `Synchronized ${mockSms.length} messages for ${phoneNumber}` });
+        }, 1000);
     };
 
     const handleAutoScan = async () => {
@@ -197,7 +242,7 @@ Generated at: ${new Date().toLocaleString()}
                 </div>
 
                 {/* Gmail Integration Hub */}
-                {(fraud_type === 'email' || fraud_type === 'message') && (
+                {fraud_type === 'email' && (
                     <div className="p-3.5 rounded-2xl glass flex items-center gap-4 min-w-[280px]">
                         <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
                             <Mail className="h-4 w-4 text-primary/70" />
@@ -212,6 +257,38 @@ Generated at: ${new Date().toLocaleString()}
                             <Button onClick={handleAutoScan} size="sm" variant="secondary" className="bg-white/5 text-[9px] uppercase font-bold tracking-widest h-8 px-4 rounded-xl hover:bg-white/10 transition-all">
                                 <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                                 Sync
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {/* SMS Phone Integration Hub */}
+                {fraud_type === 'message' && (
+                    <div className="p-3.5 rounded-2xl glass flex flex-col md:flex-row items-center gap-4 min-w-[320px]">
+                        <div className="flex items-center gap-4 flex-1 w-full">
+                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                                <MessageSquare className="h-4 w-4 text-primary/70" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">SMS Neural Bridge</p>
+                                {isPhoneLinked ? (
+                                    <p className="text-sm font-bold text-slate-300">{phoneNumber}</p>
+                                ) : (
+                                    <Input 
+                                        placeholder="+1 234 567 890" 
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        className="h-8 bg-white/5 border-white/10 px-3 text-sm rounded-lg placeholder:text-slate-500 focus:border-primary/50 transition-all"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                        {!isPhoneLinked ? (
+                            <Button onClick={handleLinkPhone} size="sm" className="bg-primary/80 text-[9px] uppercase font-bold tracking-widest h-8 px-4 rounded-xl w-full md:w-auto">Link Device</Button>
+                        ) : (
+                            <Button onClick={handleSyncSms} size="sm" variant="secondary" className="bg-white/5 text-[9px] uppercase font-bold tracking-widest h-8 px-4 rounded-xl hover:bg-white/10 transition-all">
+                                <RefreshCw className={`h-3 w-3 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                                Sync SMS
                             </Button>
                         )}
                     </div>
