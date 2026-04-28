@@ -3,7 +3,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { analyzeRisk, AnalysisResponse, AnalysisRequest } from "@/services/api";
 import { fetchRecentEmails, checkConnectionStatus } from "@/services/gmail";
-import { Shield, Link, MessageSquare, CreditCard, Loader2, Mail, Info, FileText, Share2, Clipboard, AlertCircle, RefreshCw, ChevronRight, ChevronLeft, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, Link, MessageSquare, CreditCard, Loader2, Mail, Info, FileText, Share2, Clipboard, AlertCircle, RefreshCw, ChevronRight, ChevronLeft, CheckCircle2, XCircle, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -109,6 +111,75 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
         if (v === 'FRAUDULENT') return 'text-destructive';
         if (v === 'SUSPICIOUS') return 'text-orange-500';
         return 'text-emerald-500';
+    };
+
+    const handleCopyFindings = () => {
+        if (!result) return;
+        const text = `
+S.A.F.E. Forensic Analysis Report
+---------------------------------
+Verdict: ${result.verdict}
+Risk Score: ${Math.round(result.final_score * 100)}/100
+Confidence: ${Math.round(result.confidence * 100)}%
+
+Summary:
+${result.explanation}
+
+Evidence Chain:
+${result.findings.map(f => `- [${f.severity}] ${f.title}: ${f.description}`).join('\n')}
+
+Generated at: ${new Date().toLocaleString()}
+        `.trim();
+        
+        navigator.clipboard.writeText(text);
+        toast({
+            title: "Findings Copied",
+            description: "Forensic summary has been copied to your clipboard.",
+        });
+    };
+
+    const handleExportPDF = async () => {
+        if (!result) return;
+        const element = document.getElementById('analysis-report-content');
+        if (!element) return;
+
+        setIsLoading(true);
+        toast({
+            title: "Generating Forensic PDF",
+            description: "Neutralizing artifacts and compiling report...",
+        });
+
+        try {
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#020617', // Match your dark theme
+                scale: 2,
+                logging: false,
+                useCORS: true
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`SAFE-Analysis-${new Date().getTime()}.pdf`);
+            
+            toast({
+                title: "Report Exported",
+                description: "PDF report has been saved to your downloads.",
+            });
+        } catch (error) {
+            console.error('PDF Export Error:', error);
+            toast({
+                title: "Export Failed",
+                description: "Could not generate PDF. Please try again.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -319,7 +390,7 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
                 {/* Results Panel */}
                 <div className="lg:col-span-7">
                     {result ? (
-                        <div className="space-y-8 animate-slide-in-bottom">
+                        <div id="analysis-report-content" className="space-y-8 animate-slide-in-bottom p-4">
                             {/* Intelligence Cards Row */}
                             <div className="grid md:grid-cols-11 gap-6">
                                 <div className={`md:col-span-5 p-8 rounded-[2.5rem] bg-card border shadow-3xl flex flex-col items-center justify-center text-center ${result.final_score >= 0.7 ? 'animate-glow-red border-destructive/20' : 'border-white/5'}`}>
@@ -402,11 +473,11 @@ export default function AnalyzeView({ fraud_type, title, description, icon }: An
 
                             {/* Export / Share Actions */}
                             <div className="flex gap-4">
-                                <Button variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 gap-2 font-bold uppercase tracking-widest text-xs hover:bg-white/10">
+                                <Button onClick={handleCopyFindings} variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 gap-2 font-bold uppercase tracking-widest text-xs hover:bg-white/10">
                                     <Clipboard className="h-4 w-4" />
                                     Copy Findings
                                 </Button>
-                                <Button variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 gap-2 font-bold uppercase tracking-widest text-xs hover:bg-white/10">
+                                <Button onClick={handleExportPDF} variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 gap-2 font-bold uppercase tracking-widest text-xs hover:bg-white/10">
                                     <FileText className="h-4 w-4" />
                                     Export PDF
                                 </Button>

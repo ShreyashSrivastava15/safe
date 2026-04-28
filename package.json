@@ -5,13 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:frontend": "vite --port 8081",
+    "dev:server": "tsx watch server/index.ts",
+    "dev:ai": "cmd /c \"cd ai-service && venv\\Scripts\\uvicorn.exe main:app --reload --port 8000\"",
+    "dev:all": "concurrently --names \"FRONTEND,SERVER,AI\" --prefix-colors \"cyan,green,yellow\" \"npm run dev:frontend\" \"npm run dev:server\" \"npm run dev:ai\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "tsx watch server/index.ts",
     "start": "tsx server/index.ts",
     "prisma:generate": "prisma generate",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev\" \"cd ai-service && uvicorn main:app --reload --port 8000\""
+    "db:setup": "prisma generate && prisma db push",
+    "db:reset": "prisma generate && prisma db push --force-reset"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -60,8 +65,10 @@
     "express-rate-limit": "^8.2.1",
     "googleapis": "^171.4.0",
     "helmet": "^8.1.0",
+    "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",

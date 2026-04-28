@@ -55,6 +55,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 SERVER STARTED ON PORT: ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+}).on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`💥 ERROR: Port ${PORT} is already in use by another process!`);
+    } else {
+        console.error(`💥 SERVER ERROR:`, err);
+    }
+    process.exit(1);
 });
 
 // DEBUG: Catch unexpected exits

@@ -122,6 +122,11 @@ router.get('/fetch', authenticateJWT, async (req: AuthRequest, res) => {
             count: analysisResults.length,
             results: analysisResults
         });
+    } catch (error: any) {
+        console.error('Gmail fetch error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch and analyze emails' });
+    }
+});
 
 // POST /api/v1/gmail/watch
 // Enables real-time push notifications for the user's inbox

@@ -31,4 +31,6 @@ ai-service/__pycache__/
 __pycache__/
 ai-service/models/
 /test_output.txt
-/test.json
+ai-service/venv/
+venv/
+.planning/

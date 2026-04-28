@@ -82,7 +82,29 @@
 
 ---
 
-## 📂 Project Structure
+## Local Development (No Docker)
+
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL installed locally (default port 5432)
+
+### One-time setup
+1. Create a database named `safe_db` in your local PostgreSQL
+2. Update `.env` → `DATABASE_URL` with your postgres credentials
+3. Run: `powershell -ExecutionPolicy Bypass -File scripts/setup.ps1`
+
+### Start all services
+npm run dev:all
+
+Services will be available at:
+- Frontend: http://localhost:8081
+- Backend API: http://localhost:3001
+- AI Service: http://localhost:8000
+
+---
+
+## 🏗️ System Architecture
 
 ```
 /
