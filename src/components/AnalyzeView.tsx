@@ -227,6 +227,29 @@ Generated at: ${new Date().toLocaleString()}
         }
     };
 
+    const handleShare = async () => {
+        if (!result) return;
+        const shareText = `S.A.F.E. Forensic Verdict: ${result.verdict} (${Math.round(result.final_score * 100)}/100 risk). Investigation ID: ${Date.now()}`;
+        
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'S.A.F.E. Analysis Report',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } catch (err) {
+                console.log('Error sharing:', err);
+            }
+        } else {
+            navigator.clipboard.writeText(shareText);
+            toast({
+                title: "Share Link Copied",
+                description: "Analysis summary link has been copied to clipboard.",
+            });
+        }
+    };
+
     return (
         <div className="container px-4 py-8 animate-fade-in max-w-6xl mx-auto">
             {/* Header Section */}
@@ -558,7 +581,7 @@ Generated at: ${new Date().toLocaleString()}
                                     <FileText className="h-4 w-4" />
                                     Export PDF
                                 </Button>
-                                <Button variant="outline" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 p-0 hover:bg-white/10">
+                                <Button onClick={handleShare} variant="outline" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 p-0 hover:bg-white/10">
                                     <Share2 className="h-4 w-4" />
                                 </Button>
                             </div>
