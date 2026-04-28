@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import { prisma } from '../utils/prisma';
 import { authenticateJWT, AuthRequest } from '../middleware/auth';
 import { analyzeRisk } from '../services/riskEngine';
+import { notificationService } from '../services/notificationService';
 
 const router = express.Router();
 
@@ -122,9 +123,120 @@ router.get('/fetch', authenticateJWT, async (req: AuthRequest, res) => {
             results: analysisResults
         });
 
+// POST /api/v1/gmail/watch
+// Enables real-time push notifications for the user's inbox
+router.post('/watch', authenticateJWT, async (req: AuthRequest, res) => {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const oauth2Client = await getOAuthClient(userId);
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+        const topicName = process.env.GOOGLE_PUBSUB_TOPIC || 'projects/safe-fraud-detection/topics/gmail-notifications';
+
+        const watchRes = await gmail.users.watch({
+            userId: 'me',
+            requestBody: {
+                topicName,
+                labelIds: ['INBOX']
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Real-time monitoring enabled',
+            data: watchRes.data
+        });
     } catch (error: any) {
-        console.error('Gmail fetch error:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch and analyze emails' });
+        console.error('Gmail watch error:', error);
+        res.status(500).json({ error: error.message || 'Failed to enable push notifications' });
+    }
+});
+
+// POST /api/v1/gmail/webhook
+// Endpoint called by Google Cloud Pub/Sub when new mail arrives
+router.post('/webhook', async (req, res) => {
+    // Note: This endpoint is usually public or verified via token
+    try {
+        const { message } = req.body;
+        if (!message || !message.data) {
+            return res.status(400).send('No message data');
+        }
+
+        // Decode base64 data
+        const data = JSON.parse(Buffer.from(message.data, 'base64').toString());
+        const emailAddress = data.emailAddress;
+        const historyId = data.historyId;
+
+        console.log(`[Gmail Webhook] Update for ${emailAddress}, historyId: ${historyId}`);
+
+        // Find user by email
+        const user = await prisma.user.findUnique({ where: { email: emailAddress } });
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        const oauth2Client = await getOAuthClient(user.id);
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+        // Fetch latest messages since last historyId (or just last 1 for simplicity in demo)
+        const listRes = await gmail.users.messages.list({
+            userId: 'me',
+            maxResults: 1,
+            q: 'is:unread'
+        });
+
+        const messages = listRes.data.messages || [];
+        if (messages.length > 0) {
+            const msgId = messages[0].id!;
+            const detailRes = await gmail.users.messages.get({ userId: 'me', id: msgId });
+            const msgData = detailRes.data;
+            
+            const headers = msgData.payload?.headers || [];
+            const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
+            const sender = headers.find(h => h.name === 'From')?.value || 'Unknown';
+            const body = msgData.snippet || '';
+
+            // Run Analysis
+            const result = await analyzeRisk({
+                message: `Sender: ${sender}\nSubject: ${subject}\n\n${body}`,
+                url: '',
+                transaction: null,
+                fraud_type: 'email',
+                metadata: { sender }
+            });
+
+            // Log to database
+            await prisma.analysisLog.create({
+                data: {
+                    user_id: user.id,
+                    fraud_type: 'email',
+                    message: `Sender: ${sender}\nSubject: ${subject}\n\n${body}`,
+                    scores_json: result.scores as any,
+                    signals: result.signals as any,
+                    final_score: result.final_score,
+                    risk_level: result.risk_level,
+                    verdict: result.verdict,
+                    explanation: result.explanation
+                }
+            });
+
+            // TRIGGER REAL-TIME NOTIFICATION
+            if (result.risk_level !== 'SAFE') {
+                notificationService.sendNotification(user.id, {
+                    title: `🚨 ${result.risk_level} Detected in Inbox`,
+                    message: `Suspicious activity from ${sender}. Subject: ${subject}`,
+                    type: result.risk_level === 'FRAUD' ? 'FRAUD' : 'SUSPICIOUS',
+                    link: `/history`
+                });
+            }
+        }
+
+        res.status(200).send('OK');
+    } catch (error) {
+        console.error('Webhook processing error:', error);
+        res.status(500).send('Internal Error');
     }
 });
 

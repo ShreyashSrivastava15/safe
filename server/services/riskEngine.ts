@@ -2,6 +2,7 @@ import { analyzeText } from './nlpService';
 import { analyzeUrl } from './urlService';
 import { analyzeTransaction } from './transactionService';
 import { prisma } from '../utils/prisma';
+import { riskConfig } from '../config/riskConfig';
 
 export interface IntelligenceFinding {
     id: string;
@@ -9,6 +10,12 @@ export interface IntelligenceFinding {
     description: string;
     severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
     type: 'domain' | 'nlp' | 'behavior' | 'technical' | 'location';
+}
+
+export interface AnalysisMetadata {
+    auth_results?: string;
+    sender?: string;
+    [key: string]: any;
 }
 
 interface RiskAnalysisResult {
@@ -27,7 +34,13 @@ interface RiskAnalysisResult {
     recommendation: string;
 }
 
-export const analyzeRisk = async (data: { message: string; url: string; transaction: any; fraud_type: string }): Promise<RiskAnalysisResult> => {
+export const analyzeRisk = async (data: { 
+    message: string; 
+    url: string; 
+    transaction: any; 
+    fraud_type: string;
+    metadata?: AnalysisMetadata;
+}): Promise<RiskAnalysisResult> => {
     const startTime = Date.now();
 
     let runNlp = false;
@@ -90,12 +103,14 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
 
     if (activeEnginesCount === 1) {
         finalScore = results[keys[0]].risk_score;
-    } else if (activeEnginesCount === 2) {
-        finalScore = (results.nlp.risk_score * 0.60) + (results.url.risk_score * 0.40);
+    } else if (activeEnginesCount === 2 && results.nlp && results.url) {
+        finalScore = (results.nlp.risk_score * riskConfig.weights.dual_engine_nlp_url.nlp) + 
+                     (results.url.risk_score * riskConfig.weights.dual_engine_nlp_url.url);
     } else {
-        finalScore = (results.nlp.risk_score * defaultWeights.nlp) +
-            (results.url.risk_score * defaultWeights.url) +
-            (results.tx.risk_score * defaultWeights.tx);
+        const nlpScore = results.nlp ? results.nlp.risk_score * riskConfig.weights.nlp : 0;
+        const urlScore = results.url ? results.url.risk_score * riskConfig.weights.url : 0;
+        const txScore = results.tx ? results.tx.risk_score * riskConfig.weights.tx : 0;
+        finalScore = nlpScore + urlScore + txScore;
     }
 
     let allSignals: string[] = [];
@@ -209,11 +224,20 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
     let trustScore = 0;
     let trustedDomain = '';
 
-    const senderMatch = data.message.match(/(From|Sender):\s*.*<.*@(.*)>|From:\s*.*@(.*)/i);
-    const domainCandidate = senderMatch ? (senderMatch[2] || senderMatch[3]) : null;
+    // Robust domain extraction from sender string
+    let domainCandidate: string | null = null;
+    const sender = data.metadata?.sender || '';
+    
+    if (sender) {
+        const emailMatch = sender.match(/<(.+@.+)>/) || sender.match(/([^@\s]+@[^@\s]+\.[^@\s]+)/);
+        if (emailMatch) {
+            const email = emailMatch[1];
+            domainCandidate = email.split('@')[1];
+        }
+    }
 
     if (domainCandidate) {
-        const domain = domainCandidate.toLowerCase();
+        const domain = domainCandidate.toLowerCase().trim();
         // Check database for trusted source
         const source = await prisma.trustedSource.findFirst({
             where: { 
@@ -227,7 +251,7 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
 
         if (source) {
             // VERIFICATION CHECK (DKIM/SPF)
-            const authResults = (data as any).metadata?.auth_results || '';
+            const authResults = data.metadata?.auth_results || '';
             const dkimPass = authResults.toLowerCase().includes('dkim=pass');
             const spfPass = authResults.toLowerCase().includes('spf=pass');
 
@@ -238,24 +262,24 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
             } else if (authResults) {
                 // If we have auth results but they failed for a "trusted" domain, it's a high-risk spoof attempt
                 findings.unshift({
-                    id: `rep-spoof-${Date.now()}`,
+                    id: `rep-spoof-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                     label: 'Cryptographic Identity Failure',
                     description: `Critical: This communication claims to be from a trusted source (${domain}) but failed cryptographic verification (SPF/DKIM).`,
                     severity: 'CRITICAL',
                     type: 'domain'
                 });
-                finalScore = Math.min(1.0, finalScore + 0.4);
+                finalScore = Math.min(1.0, finalScore + riskConfig.reputation.spoof_penalty);
             }
         }
     }
 
     if (isOfficialSource) {
-        // Apply dynamic reduction based on trust score (e.g. 1.0 trust = 70% reduction)
-        const reduction = 0.7 * trustScore;
+        // Apply dynamic reduction based on trust score
+        const reduction = riskConfig.reputation.trust_reduction_factor * trustScore;
         finalScore = finalScore * (1 - reduction); 
         
         findings.unshift({
-            id: `rep-trusted-${Date.now()}`,
+            id: `rep-trusted-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             label: 'Verified Official Source',
             description: `Intelligence originates from a cryptographically verified high-reputation source (${trustedDomain}).`,
             severity: 'LOW',
@@ -267,10 +291,10 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
     let verdict: 'SAFE' | 'SUSPICIOUS' | 'FRAUDULENT' = 'SAFE';
     let riskLevel: 'SAFE' | 'SUSPICIOUS' | 'FRAUD' = 'SAFE';
 
-    if (finalScore >= 0.7) {
+    if (finalScore >= riskConfig.thresholds.fraud) {
         verdict = 'FRAUDULENT';
         riskLevel = 'FRAUD';
-    } else if (finalScore >= 0.4) {
+    } else if (finalScore >= riskConfig.thresholds.suspicious) {
         verdict = 'SUSPICIOUS';
         riskLevel = 'SUSPICIOUS';
     }
@@ -302,7 +326,7 @@ export const analyzeRisk = async (data: { message: string; url: string; transact
         risk_level: riskLevel,
         verdict: verdict,
         explanation: explanation,
-        confidence: 0.85 + (Math.random() * 0.1),
+        confidence: riskConfig.thresholds.confidence_base + (Math.random() * 0.1),
         recommendation
     };
 };

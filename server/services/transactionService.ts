@@ -63,8 +63,26 @@ export const analyzeTransaction = async (transaction: Transaction): Promise<Engi
         signals.push('High-Risk Merchant: Destination merchant associated with high chargeback rates');
     }
 
-    // Cap the score at 0.99
-    const finalScore = Math.min(score, 0.99);
+    // 6. AI Engine Scoring (Isolation Forest / Behavioral Anomaly)
+    let aiScore = 0;
+    try {
+        const aiRes = await callAiEngine('transaction', {
+            amount: transaction.amount,
+            velocity: transaction.velocity || 1,
+            geo_shift: transaction.geo_shift ? 1 : 0,
+            device_change: transaction.device_change ? 1 : 0
+        });
+        aiScore = aiRes.risk_score;
+        if (aiRes.signals && aiRes.signals.length > 0) {
+            signals.push(...aiRes.signals.map(s => `[AI] ${s}`));
+        }
+    } catch (err) {
+        console.warn('AI Transaction Engine failed, falling back to heuristics only', err);
+    }
+
+    // Combine Heuristic and AI scores (60/40 split)
+    const combinedScore = (score * 0.6) + (aiScore * 0.4);
+    const finalScore = Math.min(combinedScore, 0.99);
 
     return {
         risk_score: finalScore,

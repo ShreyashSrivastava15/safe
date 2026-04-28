@@ -21,7 +21,15 @@ const RiskScoreGauge: React.FC<RiskScoreGaugeProps> = ({ score, size = 180 }) =>
     const color = getRiskColor(score);
 
     return (
-        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+        <div 
+            className="relative flex items-center justify-center" 
+            style={{ width: size, height: size }}
+            role="progressbar"
+            aria-valuenow={percentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Risk score: ${percentage}%`}
+        >
             {/* Background Track */}
             <svg className="transform -rotate-90" width={size} height={size}>
                 <circle

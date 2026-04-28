@@ -1,38 +1,62 @@
-# Code Review: Phase 3 (Elite UI/UX & Forensic Intelligence)
+# Phase 03 Code Review: Elite UI/UX & Forensic Intelligence
 
-## Summary
-- **Phase**: 3
-- **Review Date**: 2026-04-24
-- **Reviewer**: Antigravity (Elite Reviewer)
-- **Status**: 🟡 REQUIRES FIXES
+## Overview
+- **Phase**: 03
+- **Depth**: Standard
+- **Reviewer**: Antigravity
+- **Date**: 2026-04-28
 
-## Findings Overview
-| ID | File | Finding | Severity |
-|----|------|---------|----------|
-| SEC-01 | `transactionService.ts` | Hardcoded historical average (500) for deviation check | 🟡 WARNING |
-| ARCH-01| `analyze.ts` | Lack of transaction sub-schema validation for velocity | 🔴 CRITICAL |
-| UI-01 | `AnalyzeView.tsx` | Missing loading states for Gmail sync carousel | 🔵 INFO |
-| DATA-01| `schema.prisma` | Optional fields in AnalysisLog missing default empty JSON | 🟡 WARNING |
-
-## Detailed Findings
-
-### [SEC-01] Hardcoded Transaction Baseline
-- **File**: `server/services/transactionService.ts`
-- **Logic**: `const userAvg = transaction.user_avg_amount || 500;`
-- **Issue**: Relying on a fallback constant for fraud detection reduces accuracy for premium users.
-- **Recommendation**: Ensure `user_avg_amount` is always passed from the user profile service.
-
-### [ARCH-01] Missing Velocity Type Validation
-- **File**: `server/routes/analyze.ts`
-- **Issue**: The Zod schema validates `velocity` as an optional number but doesn't enforce positive integers.
-- **Recommendation**: Update Zod schema to `.int().positive()`.
-
-### [DATA-01] JSON Field Initialization
-- **File**: `prisma/schema.prisma`
-- **Issue**: `findings_json` can be null, leading to runtime errors on the frontend if not handled.
-- **Recommendation**: Set `@default("[]")` for findings and signals.
+## Severity Summary
+| Severity | Count | Status |
+| :--- | :--- | :--- |
+| 🔴 CRITICAL | 1 | Open |
+| 🟠 HIGH | 2 | Open |
+| 🟡 MEDIUM | 2 | Open |
+| 🔵 LOW | 1 | Open |
 
 ---
+
+## Findings
+
+### [🔴 CRITICAL] Untyped & Fragile Reputation Verification
+- **File**: `server/services/riskEngine.ts` (Lines 212-250)
+- **Description**: The official source verification logic relies on a fragile regex `match` against `data.message` and uses `(data as any).metadata?.auth_results`. If the message format changes slightly or metadata is malformed, the reputation check may fail or crash.
+- **Impact**: Potential for "false negatives" where high-reputation spoofing attempts bypass verification due to regex failure.
+- **Recommendation**: Standardize the `metadata` interface and use a robust URL/Email parser instead of regex for domain extraction.
+
+### [🟠 HIGH] AI Engine Bypass in Transaction Service
+- **File**: `server/services/transactionService.ts`
+- **Description**: The `analyzeTransaction` function imports `callAiEngine` but never uses it. It relies entirely on hardcoded heuristics (Velocity, Geo-shift).
+- **Impact**: The "Isolation Forest" ML model mentioned in the project architecture is not being utilized for transaction analysis, reducing detection accuracy for complex patterns.
+- **Recommendation**: Integrate the `callAiEngine` call to fetch ML scores and combine them with the heuristic signals.
+
+### [🟠 HIGH] Hardcoded Analysis Weights
+- **File**: `server/services/riskEngine.ts` (Lines 85-99)
+- **Description**: Risk score fusion weights (e.g., 0.6/0.4 split) are hardcoded into the logic.
+- **Impact**: Difficulty in tuning the engine without code changes. As more engines are added in Phase 4, this logic will become increasingly complex and brittle.
+- **Recommendation**: Move engine weights to a configuration file or environment variables.
+
+### [🟡 MEDIUM] Brittle Finding IDs
+- **File**: `server/services/riskEngine.ts` (Line 109, etc.)
+- **Description**: `IntelligenceFinding` IDs are generated using \`nlp-urgency-\${Date.now()}\`. 
+- **Impact**: While collisions in a single request are unlikely, it's not a deterministic or globally unique pattern for distributed tracing.
+- **Recommendation**: Use a proper UUID generator or a counter-based ID system within the request scope.
+
+### [🟡 MEDIUM] Missing UI Accessibility
+- **File**: `src/components/AnalysisResults/RiskScoreGauge.tsx`
+- **Description**: The SVG-based gauge lacks ARIA labels or roles.
+- **Impact**: Screen readers will not be able to communicate the risk score percentage to visually impaired users.
+- **Recommendation**: Add `role="progressbar"` and `aria-valuenow={percentage}` to the container.
+
+### [🔵 LOW] Redundant Signal Filtering
+- **File**: `server/services/riskEngine.ts` (Line 194)
+- **Description**: Filtering signals for "No significant" text is a band-aid for engines returning "safe" messages as signals.
+- **Impact**: Minor performance hit and slightly messy logic.
+- **Recommendation**: Engines should return an empty signals array if no anomalies are found, rather than returning strings that need to be filtered out later.
+
+---
+
 ## Next Steps
-1. Run `/gsd-code-review-fix 3` to apply recommended architectural and data fixes.
-2. Re-verify the "Impossible Travel" logic with dynamic input.
+1. **Fix Critical/High Issues**: Address the reputation logic and AI engine integration.
+2. **Refactor Weights**: Prepare for Phase 4 by moving weights to config.
+3. **Verify**: Run `gsd-verify-work` after fixes to ensure detection accuracy.

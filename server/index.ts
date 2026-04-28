@@ -11,6 +11,7 @@ import adminRoutes from './routes/admin';
 import googleAuthRoutes from './routes/googleAuth';
 import gmailRoutes from './routes/gmail';
 import authRoutes from './routes/auth';
+import notificationsRoutes from './routes/notifications';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/auth', googleAuthRoutes);
 app.use('/api/v1/gmail', gmailRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

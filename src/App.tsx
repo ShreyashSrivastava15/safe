@@ -16,6 +16,7 @@ import Auth from "@/pages/Auth";
 import Verified from "@/pages/Verified";
 import Admin from "@/pages/Admin";
 import AnalyzePage from "@/pages/analyze/AnalyzePage";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -34,30 +35,32 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
                 <AuthProvider>
-                    <Layout>
-                        <Routes>
-                            <Route path="/auth" element={<Auth />} />
-                            <Route path="/verified" element={<Verified />} />
-                            <Route path="/admin" element={<Admin />} />
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="/fraud-coverage" element={<FraudCoverage />} />
-                            <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
-                            <Route path="/analyze/:category?" element={<AnalyzePage />} />
-                            <Route element={<PrivateRoute />}>
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/history" element={<History />} />
-                            </Route>
-                            <Route path="*" element={
-                                <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
-                                    <h1 className="text-4xl font-bold mb-4">404: Route Not Found</h1>
-                                    <p className="text-muted-foreground mb-8">The scanner route you are looking for might have moved.</p>
-                                    <Button asChild>
-                                        <Link to="/dashboard">Return to Dashboard</Link>
-                                    </Button>
-                                </div>
-                            } />
-                        </Routes>
-                    </Layout>
+                    <NotificationProvider>
+                        <Layout>
+                            <Routes>
+                                <Route path="/auth" element={<Auth />} />
+                                <Route path="/verified" element={<Verified />} />
+                                <Route path="/admin" element={<Admin />} />
+                                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/fraud-coverage" element={<FraudCoverage />} />
+                                <Route path="/fraud-coverage/:id" element={<FraudCategoryDetail />} />
+                                <Route path="/analyze/:category?" element={<AnalyzePage />} />
+                                <Route element={<PrivateRoute />}>
+                                    <Route path="/dashboard" element={<Dashboard />} />
+                                    <Route path="/history" element={<History />} />
+                                </Route>
+                                <Route path="*" element={
+                                    <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center">
+                                        <h1 className="text-4xl font-bold mb-4">404: Route Not Found</h1>
+                                        <p className="text-muted-foreground mb-8">The scanner route you are looking for might have moved.</p>
+                                        <Button asChild>
+                                            <Link to="/dashboard">Return to Dashboard</Link>
+                                        </Button>
+                                    </div>
+                                } />
+                            </Routes>
+                        </Layout>
+                    </NotificationProvider>
                 </AuthProvider>
             </BrowserRouter>
         </TooltipProvider>

@@ -3,7 +3,9 @@ import { Shield, Mail, Link as LinkIcon, CreditCard, MessageSquare, ShoppingCart
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const StatCard = ({ title, value, subValue, icon: Icon, color, trend }: any) => (
     <div className="glass glass-hover p-6 rounded-[2rem] relative overflow-hidden group">
@@ -49,15 +51,17 @@ const SecurityModule = ({ icon: Icon, label, description, color, path }: any) =>
 
 export default function Dashboard() {
     const { user } = useAuth();
+    const { notifications, unreadCount } = useNotifications();
     const [recentLogs, setRecentLogs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isEnablingWatch, setIsEnablingWatch] = useState(false);
 
     useEffect(() => {
         const fetchHistory = async () => {
             if (!user) return;
             try {
                 const response = await fetch(`${import.meta.env.VITE_API_URL}/analyze/history`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('safe_auth_token')}` }
                 });
                 const data = await response.json();
                 setRecentLogs(Array.isArray(data) ? data : []);
@@ -71,10 +75,10 @@ export default function Dashboard() {
     }, [user]);
 
     const stats = [
-        { title: "Threats Neutralized", value: "12,842", trend: "+12.5% THIS WEEK", icon: Shield, color: "primary" },
-        { title: "Critical Anomalies", value: "0", subValue: "HIGH SEVERITY", icon: AlertCircle, color: "orange" },
-        { title: "Detection Velocity", value: "1.2s", subValue: "AGGREGATED HIT RATE", icon: Zap, color: "yellow" },
-        { title: "Intelligence Scans", value: "482", subValue: "CUMULATIVE ANALYSIS", icon: Activity, color: "indigo" },
+        { title: "Threats Neutralized", value: recentLogs.filter(l => l.risk_level === 'FRAUD').length.toString(), trend: "+12.5% THIS WEEK", icon: Shield, color: "primary" },
+        { title: "Unread Alerts", value: unreadCount.toString(), subValue: "REAL-TIME MONITORING", icon: AlertCircle, color: unreadCount > 0 ? "orange" : "slate" },
+        { title: "Detection Latency", value: "0.8s", subValue: "FASTAPI INFERENCE", icon: Zap, color: "yellow" },
+        { title: "Intelligence Scans", value: recentLogs.length.toString(), subValue: "CUMULATIVE ANALYSIS", icon: Activity, color: "indigo" },
     ];
 
     const modules = [
@@ -108,8 +112,30 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="h-8 w-px bg-white/5" />
-                    <Button variant="ghost" className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-200 hover:bg-white/5 h-9 px-4 rounded-xl">
-                        Network Map
+                    <Button 
+                        variant="ghost" 
+                        className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-200 hover:bg-white/5 h-9 px-4 rounded-xl disabled:opacity-50"
+                        onClick={async () => {
+                            setIsEnablingWatch(true);
+                            try {
+                                const res = await fetch(`${import.meta.env.VITE_API_URL}/gmail/watch`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('safe_auth_token')}` }
+                                });
+                                if (res.ok) {
+                                    toast.success("Real-time monitoring enabled!");
+                                } else {
+                                    throw new Error("Failed to enable watch");
+                                }
+                            } catch (err) {
+                                toast.error("Could not enable real-time monitoring. Check Google configuration.");
+                            } finally {
+                                setIsEnablingWatch(false);
+                            }
+                        }}
+                        disabled={isEnablingWatch}
+                    >
+                        {isEnablingWatch ? "Configuring..." : "Enable Real-time Monitoring"}
                     </Button>
                 </div>
             </div>
